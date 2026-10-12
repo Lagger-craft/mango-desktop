@@ -73,3 +73,11 @@ task. Test runner: `bash -n`, `install.sh --dry-run`, `mango -p`, `git diff --ch
 - L4 (2026-10-12, evidence): all Mango bindings and scripts hardcode
   `$HOME/mango-desktop/...`; the installer therefore documents the clone path
   requirement at `~/mango-desktop`.
+- L5 (2026-10-12, evidence): `install.sh` implemented with `--dry-run` and
+  `--uninstall`; `bash -n` passed. Real run was idempotent (all packages
+  present, both symlinks already correct, `mango -p` exit 0). Dry-run mutated
+  nothing; `--dry-run --uninstall` printed the exact `rm` actions. Wrong clone
+  path exits 1 with an actionable message. `chromium` was added to the official
+  dependency list because `Super+Shift+W` spawns it. Dry-run output was made
+  truthful: action-confirming notes (`linked/removed/set/parses cleanly`) no
+  longer print when the action was only simulated.

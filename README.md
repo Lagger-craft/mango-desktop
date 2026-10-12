@@ -1,9 +1,10 @@
 # Standalone MangoWM desktop
 
 This repository is an optional personal MangoWM setup. It does not replace or
-remove Niri, edit shared dotfiles, or install packages. It uses local images in
-`~/Pictures/Wallpapers` and the installed MangoWM, Quickshell, Foot, Wofi,
-mpvpaper, Firefox, and Chromium.
+remove Niri and leaves shared dotfiles untouched. Package installation is
+opt-in through the included `install.sh` (see `## Install`). It uses local
+images in `~/Pictures/Wallpapers` and the MangoWM, Quickshell, Foot, Wofi,
+mpvpaper, Firefox, and Chromium stack described below.
 
 ## Try it
 
@@ -22,6 +23,30 @@ explicitly by its shortcut, while Chromium remains available as a fallback.
 Firefox is configured as the XDG default browser; Chromium remains available
 from its dedicated shortcut.
 
+## Install
+
+Clone this repository to exactly `$HOME/mango-desktop` (the config references
+that path), then run the installer:
+
+```sh
+git clone <this-repo> "$HOME/mango-desktop"
+cd "$HOME/mango-desktop"
+./install.sh            # install and link
+./install.sh --dry-run  # preview every action, change nothing
+./install.sh --uninstall # remove only the symlinks the installer created
+```
+
+Dependency policy: official-repo packages are installed with `pacman`
+(`mangowm`, `quickshell`, `foot`, `wofi`, `cliphist`, `wl-clipboard`, `grim`,
+`slurp`, `dunst`, `firefox`, `chromium`, `xdg-utils`); AUR-only packages go
+through the first available helper among `yay` and `paru` (`mpvpaper`). Set
+`AUR_HELPER=<helper>` to force one. The installer is idempotent and
+non-destructive: it never overwrites an existing config path (an occupied
+`~/.config/mango` or `~/.config/dunst/dunstrc` is reported as `SKIP` and left
+alone), it only sets the XDG default browser when none is configured, and it
+never touches Niri or `~/.config/quickshell`. Packages are left installed on
+`--uninstall`; see `## Rollback` for the rest.
+
 ## Controls
 
 | Shortcut | Action |
@@ -31,6 +56,7 @@ from its dedicated shortcut.
 | Super+Shift+W | Chromium fallback |
 | Super+Up / Super+Down | Raise / lower volume by 5% |
 | Keyboard volume wheel/keys | Raise / lower volume by 5% |
+| Wheel press (`XF86AudioMute`) | Toggle mute |
 | Super+Tab | Mango overview across tags |
 | Super+Space | Wofi application launcher |
 | Super+Alt+W | Choose and persist a local wallpaper |
