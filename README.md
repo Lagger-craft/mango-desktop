@@ -39,7 +39,7 @@ from its dedicated shortcut.
 | Super+Left mouse drag | Move focused window |
 | Super+Q | Close focused window |
 | Super+Shift+Q | Power menu |
-| Super+Shift+S | Select an area and save a timestamped PNG screenshot |
+| Super+Shift+S | Select an area, save a timestamped PNG screenshot, and copy it |
 | Super+1…9 | View tag 1…9 |
 | Super+Shift+1…9 | Move focused window to tag 1…9 |
 | Super+Left/Right | Previous/next tag |
@@ -63,6 +63,11 @@ installed cliphist 0.7.0 has no `max-store-size` option). The history may contai
 sensitive copied data; clear it with `cliphist wipe`. Canceling the `Super+V`
 picker leaves the current clipboard unchanged. `Super+/` displays a static list
 and does not execute selected text.
+
+The `Super+Shift+S` region screenshot is saved under
+`~/Pictures/Screenshots` and copied as a PNG image. Each successful capture
+replaces the current clipboard with that screenshot; canceling the selector
+leaves the clipboard unchanged.
 
 Dunst remains the sole notification daemon. The project provides
 `dunst/dunstrc`; after verifying that `~/.config/dunst/dunstrc` does not already

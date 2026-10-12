@@ -28,6 +28,7 @@ The user wants to try a personal MangoWM setup before deciding whether to remove
 - `README.md`
 - `mango/scripts/clipboard-menu.sh`
 - `mango/scripts/shortcut-reference.sh`
+- `mango/scripts/screenshot-area.sh`
 - `dunst/dunstrc`
 
 ## Tasks
@@ -36,7 +37,7 @@ The user wants to try a personal MangoWM setup before deciding whether to remove
 - [x] CM-3 (delegated direct): Applied the user's three-monitor geometry/rates, Super+left-drag and Vim-style HJKL window controls, Super+Q close, removed the redundant wallpaper bar button while retaining its shortcut, and enabled app icons in Wofi.
 - [x] CM-4 (direct inline): Configured mpvpaper to keep static images indefinitely and fill each output at its own dimensions without stretching; recorded the crop and fullscreen-pause tradeoffs.
 - [x] CM-5 (delegated direct): Added a bounded local cliphist menu on Super+V, a shortcut reference on Super+/, and a Chernobyl theme for the existing Dunst service.
-- [x] CM-6 (direct inline): Added `Super+Shift+S` to select a screen region and save a timestamped screenshot under `~/Pictures/Screenshots`.
+- [x] CM-6 (reopened by user request): `Super+Shift+S` saves the selected region as a timestamped PNG and copies that image (`image/png`) to the clipboard; canceling leaves the clipboard unchanged.
 
 ## Acceptance criteria
 - `Super+Return` launches Foot; `Super+W` launches Firefox; `Super+Shift+W` launches Chromium; Firefox is the XDG default browser.
@@ -59,12 +60,12 @@ The user wants to try a personal MangoWM setup before deciding whether to remove
 - `Super+V` opens a Wofi clipboard-history picker; history is local and limited to 100 entries with a documented clear command.
 - `Super+/` opens a themed reference of the configured keyboard shortcuts.
 - Dunst keeps its existing notification ownership but uses a matching charcoal/green/amber theme.
-- `Super+Shift+S` opens a region selector and saves the selected area as a timestamped PNG without overwriting earlier screenshots.
+- `Super+Shift+S` opens a region selector, saves the selected area as a timestamped PNG, and copies it to the clipboard; canceling leaves the clipboard unchanged.
 
 ## Route and checks
 - Route: delegated direct; multiple coordinated config, shell, and script files need existing-version research and implementation.
 - TDD exception: this declarative compositor/QML setup has no meaningful deterministic RED/GREEN unit test. Validate Mango's parser, shell script syntax, QML runtime where Wayland is available, and worktree integrity.
-- Checks: `mango -c ./mango/config.conf -p`; `bash -n ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh`; `quickshell --path ./quickshell/shell.qml` (interactive runtime load where available); `mmsg get all-monitors`; `git diff --check`.
+- Checks: `mango -c ./mango/config.conf -p`; `bash -n ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh ./mango/scripts/screenshot-area.sh`; `quickshell --path ./quickshell/shell.qml` (interactive runtime load where available); `mmsg get all-monitors`; `git diff --check`.
 - CM-4 check: `bash -n ./mango/scripts/wallpaper-selector.sh`; mpvpaper option behavior is verified from its installed manual/upstream source, with no wallpaper process launched during validation.
 - CM-5 checks: `bash -n` for both helper scripts, Mango config parser, and `git diff --check`; Dunst reload through the existing daemon; manual shortcut checks without reading or overwriting existing clipboard contents.
 
@@ -85,8 +86,8 @@ The user wants to try a personal MangoWM setup before deciding whether to remove
 - CM-5 implementation: added one Mango `exec_once` clipboard watcher with a 100-entry cliphist limit and a 1 MiB per-item cap enforced in the watcher helper; cliphist 0.7.0 does not support its documented `max-store-size` option. It keeps its database in cliphist's default local XDG cache. `Super+V` uses a Wofi picker, exits harmlessly on cancellation, and sends the chosen item through `cliphist decode` to `wl-copy`; `Super+/` shows a static Wofi shortcut list using Mango's parser-accepted `slash` key symbol. Added a concise Dunst 1.13-compatible theme in `dunst/dunstrc`, while retaining Dunst as the sole notification daemon. README covers controls, local retention and `cliphist wipe`, Dunst setup/reload/rollback, and the project's limited no-network guarantee.
 - CM-5 verification: helper-script syntax, Mango parser, and `git diff --check` passed. The Dunst config link points to this project; `dunstctl reload` succeeded and the existing service stayed active. A benign test notification was displayed. Mango config reload succeeded and exactly one bounded `wl-paste --watch` process is running. Clipboard/history contents were not read or overwritten; the live picker was not opened to avoid displaying existing entries.
 - CM-5 privacy note: cliphist stores future clipboard selections in its local XDG cache, bounded to 100 entries and 1 MiB per item; `cliphist wipe` clears that local history. Dunst remains the sole notification daemon.
-- CM-6: `Super+Shift+S` uses Mango `spawn_shell` with `slurp -d` and `grim -g` to save timestamped PNGs under the existing `~/Pictures/Screenshots` directory; canceling the selection skips capture.
-- CM-6 verification: `mango -c "$HOME/.config/mango/config.conf" -p` and `git diff --check` passed. The region selector was not opened and no screenshot was created during validation.
+- CM-6: `Super+Shift+S` selects a region, saves a unique timestamped PNG under `~/Pictures/Screenshots`, and copies the same PNG to the clipboard as `image/png`; canceling leaves the clipboard untouched.
+- CM-6 verification (2026-10-12): `bash -n ./mango/scripts/screenshot-area.sh` — passed (exit 0); `mango -c "$HOME/.config/mango/config.conf" -p` — passed (exit 0, no diagnostics); `git diff --check` — passed (exit 0). Static file metadata confirms the helper is executable (`-rwxr-xr-x`, mode 755). No screenshot helper, `grim`, `slurp`, or `wl-copy` was run; no screenshot was created and the current clipboard was neither inspected nor changed. No safe deterministic end-to-end test exists because it would interact with the live display and clipboard, so shortcut runtime behavior remains unverified.
 - CM-5 is included in the follow-up work-unit commit; the local cliphist watcher and Dunst theme are active.
 - 2026-10-12: Implemented CM-1 in `mango/config.conf`, both menu/wallpaper scripts, `mango/wofi.css`, `quickshell/shell.qml`, and `README.md`. Installed `~/.config/mango` as a link to this project, leaving `~/.config/quickshell` untouched. Set Firefox as the XDG default (`firefox.desktop`). Mango reloaded the config successfully; QuickShell loaded and displayed a top layer on each of the three auto-detected monitors. No output names, positions, resolutions, or scales are hardcoded.
 - Verification: `mango -c "$HOME/.config/mango/config.conf" -p` — passed. `bash -n ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh` — passed. `git diff --cached --check` — passed. The QuickShell runtime first failed before a Wayland socket was available; after the Mango session became available, `timeout --signal=TERM 8s quickshell --path /home/lagger/mango-desktop/quickshell/shell.qml --verbose` loaded the configuration with no QML errors and exited only when the 8-second test timeout fired. A persistent QuickShell process is now running and Mango reports `quickshell` top layers on HDMI-A-1, DP-2, and DP-1. The declarative setup has no meaningful deterministic RED/GREEN unit test.
@@ -98,4 +99,4 @@ The user wants to try a personal MangoWM setup before deciding whether to remove
 - Work-unit commits: `a1509c2` (`feat(desktop): add standalone Chernobyl MangoWM setup`); `32a0986` (`feat(desktop): complete Chernobyl Mango profile`); `47433d0` (`feat(desktop): add area screenshot binding`).
 
 ## Next step
-CM-1 through CM-6 are implemented and locally validated. Manually verify `Super+Shift+S`, Super+V, and Super+/; use `Super+Alt+W` to choose a wallpaper and confirm the portrait crop. If you later request publication, the local commit slices follow `stacked-to-main`; nothing has been pushed or opened.
+Manually verify `Super+Shift+S`; also verify Super+V and Super+/, and use `Super+Alt+W` to choose a wallpaper and confirm the portrait crop. If you later request publication, the local commit slices follow `stacked-to-main`; nothing has been pushed or opened.
