@@ -29,6 +29,8 @@ from its dedicated shortcut.
 | Super+Return | Foot terminal |
 | Super+W | Firefox |
 | Super+Shift+W | Chromium fallback |
+| Super+Up / Super+Down | Raise / lower volume by 5% |
+| Keyboard volume wheel/keys | Raise / lower volume by 5% |
 | Super+Tab | Mango overview across tags |
 | Super+Space | Wofi application launcher |
 | Super+Alt+W | Choose and persist a local wallpaper |
