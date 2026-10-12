@@ -196,9 +196,27 @@ ShellRoot {
               Repeater {
                 model: SystemTray.items
                 delegate: Item {
+                  id: trayItem
                   required property var modelData
                   width: 30
                   height: 30
+
+                  // Right-click must not render before the D-Bus menu children
+                  // arrive; this pending flag bridges that async gap.
+                  property bool menuPending: false
+
+                  Timer {
+                    id: menuWait
+                    interval: 40
+                    repeat: true
+                    running: trayItem.menuPending
+                    onTriggered: {
+                      if (trayMenuOpener.children.values.length > 0) {
+                        trayMenu.visible = true;
+                        trayItem.menuPending = false;
+                      }
+                    }
+                  }
 
                   Image {
                     anchors.centerIn: parent
@@ -215,6 +233,16 @@ ShellRoot {
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+
+                    // Pre-load the menu over D-Bus while the user hovers, so a
+                    // right-click usually finds the children already present.
+                    // Skip when a menu is already open, or hovering another icon
+                    // would swap the visible menu's content underneath it.
+                    onContainsMouseChanged: {
+                      if (containsMouse && modelData.hasMenu && !trayMenu.visible)
+                        trayMenuOpener.menu = modelData.menu;
+                    }
+
                     onClicked: mouse => {
                       if (mouse.button === Qt.RightButton) {
                         if (modelData.hasMenu) {
@@ -222,7 +250,13 @@ ShellRoot {
                           trayMenu.anchor.rect.x = Math.max(8, Math.min(point.x - trayMenu.width / 2, panel.width - trayMenu.width - 8));
                           trayMenu.anchor.rect.y = panel.implicitHeight;
                           trayMenuOpener.menu = modelData.menu;
-                          trayMenu.visible = true;
+                          if (trayMenuOpener.children.values.length > 0) {
+                            trayMenu.visible = true;
+                          } else {
+                            // Children still loading: wait for them so the popup
+                            // never renders as an empty themed rectangle.
+                            trayItem.menuPending = true;
+                          }
                         }
                       } else if (mouse.button === Qt.MiddleButton) {
                         modelData.secondaryActivate();
