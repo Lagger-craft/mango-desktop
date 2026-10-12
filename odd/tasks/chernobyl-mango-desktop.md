@@ -95,7 +95,7 @@ The user wants to try a personal MangoWM setup before deciding whether to remove
 - Delivery: CM-1's 436 authored lines exceed the approximate review-slice budget. User-selected `stacked-to-main` keeps CM-1 as slice 1 and CM-2–CM-5 as one 430-line local follow-up slice. The slight overage is intentional to keep the complete, usable desktop profile together; no remote action is authorized.
 - Rollback boundary: exit this Mango session and run `mango/scripts/wallpaper-selector.sh --stop`; remove `~/.config/mango` only if it still points to `~/mango-desktop/mango`; restore the previous XDG browser with `xdg-settings set default-web-browser chromium.desktop` if desired; remove only `${XDG_STATE_HOME:-$HOME/.local/state}/mango` if the stored wallpaper selection should also be forgotten. No Niri files or existing `~/.config/quickshell` symlink are changed.
 - Skill resolution: `fallback-registry` — no project skill registry was present; loaded installed `work-unit-commits` skill.
-- Work-unit commits: `a1509c2` (`feat(desktop): add standalone Chernobyl MangoWM setup`); `32a0986` (`feat(desktop): complete Chernobyl Mango profile`).
+- Work-unit commits: `a1509c2` (`feat(desktop): add standalone Chernobyl MangoWM setup`); `32a0986` (`feat(desktop): complete Chernobyl Mango profile`); `47433d0` (`feat(desktop): add area screenshot binding`).
 
 ## Next step
 CM-1 through CM-6 are implemented and locally validated. Manually verify `Super+Shift+S`, Super+V, and Super+/; use `Super+Alt+W` to choose a wallpaper and confirm the portrait crop. If you later request publication, the local commit slices follow `stacked-to-main`; nothing has been pushed or opened.
