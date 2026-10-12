@@ -26,7 +26,7 @@ start_wallpaper() {
   [[ -f "$image" ]] || return 1
   mkdir -p -- "$state_dir"
   stop_managed_wallpaper
-  mpvpaper -p -a FULL -o 'no-audio loop' ALL "$image" &
+  mpvpaper -p -a FULL -o 'no-audio loop image-display-duration=inf panscan=1' ALL "$image" &
   printf '%s\n' "$!" > "$pid_file"
   printf '%s\n' "$image" > "$selection_file"
 }

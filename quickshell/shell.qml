@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.SystemTray
 import QtQuick
+import QtQuick.Controls
 
 ShellRoot {
   Variants {
@@ -17,55 +18,97 @@ ShellRoot {
           left: true
           right: true
         }
-        implicitHeight: 36
-        exclusiveZone: 36
-        color: "#171a17"
+        implicitHeight: 40
+        exclusiveZone: 40
+        color: "transparent"
 
         Rectangle {
           anchors.fill: parent
-          color: "#171a17"
-          border.color: "#333a32"
-          border.width: 1
+          color: "#e8171a17"
 
-          Row {
+          Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 2
+            color: "#9bd45a"
+          }
+
+          Item {
             anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-            spacing: 14
-
-            Text {
-              text: "☢  ZONE"
-              color: "#9bd45a"
-              font.bold: true
-              anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Item { width: 1; height: 1 }
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
 
             Row {
-              spacing: 4
+              anchors.left: parent.left
               anchors.verticalCenter: parent.verticalCenter
+              spacing: 12
+
+              Text {
+                text: "☢  ZONE"
+                color: "#a6dc69"
+                font.bold: true
+                font.pixelSize: 13
+                anchors.verticalCenter: parent.verticalCenter
+              }
+
+              Rectangle {
+                width: 1
+                height: 18
+                color: "#485044"
+                anchors.verticalCenter: parent.verticalCenter
+              }
+
+              Text {
+                text: "TAGS  1–9"
+                color: "#a5a99d"
+                font.pixelSize: 11
+                anchors.verticalCenter: parent.verticalCenter
+              }
+            }
+
+            Text {
+              id: clock
+              anchors.centerIn: parent
+              color: "#e5e8dc"
+              font.pixelSize: 13
+              font.letterSpacing: 0.3
+
+              Timer {
+                interval: 1000
+                running: true
+                repeat: true
+                triggeredOnStart: true
+                onTriggered: clock.text = Qt.formatDateTime(new Date(), "ddd, dd MMM  ·  HH:mm")
+              }
+            }
+
+            Row {
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: 5
 
               Repeater {
                 model: SystemTray.items
                 delegate: Item {
                   required property var modelData
-                  width: 24
-                  height: 26
+                  width: 30
+                  height: 30
 
                   Image {
                     anchors.centerIn: parent
-                    width: 20
-                    height: 20
+                    width: 18
+                    height: 18
                     source: modelData.icon
-                    sourceSize.width: 20
-                    sourceSize.height: 20
+                    sourceSize.width: 18
+                    sourceSize.height: 18
                     fillMode: Image.PreserveAspectFit
                   }
 
                   MouseArea {
                     id: trayMouse
                     anchors.fill: parent
+                    hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                     onClicked: mouse => {
                       if (mouse.button === Qt.RightButton) {
@@ -78,49 +121,53 @@ ShellRoot {
                       }
                     }
                   }
+
+                  ToolTip.visible: trayMouse.containsMouse && !!modelData.tooltip
+                  ToolTip.text: modelData.tooltip || ""
+                  ToolTip.delay: 500
                 }
               }
-            }
 
-            Item { width: 1; height: 1 }
+              Rectangle {
+                width: 1
+                height: 20
+                color: "#485044"
+                anchors.verticalCenter: parent.verticalCenter
+                visible: SystemTray.items.count > 0
+              }
 
-            Text {
-              id: clock
-              color: "#e5e8dc"
-              anchors.verticalCenter: parent.verticalCenter
-              Timer {
-                interval: 1000
-                running: true
-                repeat: true
-                triggeredOnStart: true
-                onTriggered: clock.text = Qt.formatDateTime(new Date(), "ddd dd MMM  HH:mm:ss")
+              Rectangle {
+                id: powerButton
+                width: 83
+                height: 29
+                radius: 5
+                color: powerMouse.containsMouse ? "#402d29" : "#282321"
+                scale: powerMouse.containsMouse ? 1.035 : 1
+                anchors.verticalCenter: parent.verticalCenter
+
+                Behavior on color { ColorAnimation { duration: 140 } }
+                Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+
+                Row {
+                  anchors.centerIn: parent
+                  spacing: 6
+                  Text { text: "⏻"; color: "#ec8064"; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
+                  Text { text: "POWER"; color: "#e4dfcf"; font.pixelSize: 10; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+                }
+
+                MouseArea {
+                  id: powerMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: powerProcess.running = true
+                }
+                ToolTip.visible: powerMouse.containsMouse
+                ToolTip.text: "Log out, reboot, or power off"
+                ToolTip.delay: 500
               }
             }
 
-            Text {
-              text: "WALLPAPER"
-              color: "#d7a64a"
-              anchors.verticalCenter: parent.verticalCenter
-              MouseArea {
-                anchors.fill: parent
-                onClicked: wallpaperProcess.running = true
-              }
-            }
-
-            Text {
-              text: "POWER"
-              color: "#e07055"
-              anchors.verticalCenter: parent.verticalCenter
-              MouseArea {
-                anchors.fill: parent
-                onClicked: powerProcess.running = true
-              }
-            }
-
-            Process {
-              id: wallpaperProcess
-              command: [Quickshell.env("HOME") + "/mango-desktop/mango/scripts/wallpaper-selector.sh"]
-            }
             Process {
               id: powerProcess
               command: [Quickshell.env("HOME") + "/mango-desktop/mango/scripts/power-menu.sh"]
