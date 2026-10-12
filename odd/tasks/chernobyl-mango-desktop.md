@@ -51,7 +51,7 @@ The user wants to try a personal MangoWM setup before deciding whether to remove
 - Local verification mode: clone-local receipt-driven review is off at the user's explicit request; global default remains on. The native review had been started and consented before that choice, but was not completed. Static independent audit and local checks were used; no review receipt or approval is claimed.
 - Rollback boundary: exit this Mango session and run `mango/scripts/wallpaper-selector.sh --stop`; remove `~/.config/mango` only if it still points to `~/mango-desktop/mango`; restore the previous XDG browser with `xdg-settings set default-web-browser chromium.desktop` if desired; remove only `${XDG_STATE_HOME:-$HOME/.local/state}/mango` if the stored wallpaper selection should also be forgotten. No Niri files or existing `~/.config/quickshell` symlink are changed.
 - Skill resolution: `fallback-registry` — no project skill registry was present; loaded installed `work-unit-commits` skill.
-- Work-unit commit: pending.
+- Work-unit commit: `a1509c2` (`feat(desktop): add standalone Chernobyl MangoWM setup`).
 
 ## Next step
-Commit this work unit, then use `Super+Alt+W` to choose a wallpaper and manually verify the launch, power, and overview shortcuts in the live session.
+Use `Super+Alt+W` to choose a wallpaper and manually verify the launch, power, and overview shortcuts in the live session.
