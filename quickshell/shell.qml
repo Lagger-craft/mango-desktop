@@ -1,3 +1,4 @@
+//@ pragma UseQApplication
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.SystemTray
@@ -216,8 +217,13 @@ ShellRoot {
                     acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                     onClicked: mouse => {
                       if (mouse.button === Qt.RightButton) {
-                        const point = panel.mapFromItem(trayMouse, mouse.x, mouse.y);
-                        modelData.display(panel, point.x, point.y);
+                        if (modelData.hasMenu) {
+                          const point = panel.mapFromItem(trayMouse, mouse.x, mouse.y);
+                          trayMenu.anchor.rect.x = Math.max(8, Math.min(point.x - trayMenu.width / 2, panel.width - trayMenu.width - 8));
+                          trayMenu.anchor.rect.y = panel.implicitHeight;
+                          trayMenuOpener.menu = modelData.menu;
+                          trayMenu.visible = true;
+                        }
                       } else if (mouse.button === Qt.MiddleButton) {
                         modelData.secondaryActivate();
                       } else {
@@ -226,9 +232,124 @@ ShellRoot {
                     }
                   }
 
-                  ToolTip.visible: trayMouse.containsMouse && !!modelData.tooltip
+                  ToolTip.visible: trayMouse.containsMouse && !trayMenu.visible && !!modelData.tooltip
                   ToolTip.text: modelData.tooltip || ""
                   ToolTip.delay: 500
+                }
+              }
+
+              // Themed tray context menu. The native display() menu renders as
+              // a PlatformMenuEntry through the system Qt theme and cannot be
+              // styled from QML, so the item's QsMenuHandle is rendered here
+              // with the bar's Chernobyl palette instead.
+              QsMenuOpener { id: trayMenuOpener }
+
+              PopupWindow {
+                id: trayMenu
+                visible: false
+                grabFocus: true
+                anchor.window: panel
+                implicitWidth: 240
+                implicitHeight: menuColumn.implicitHeight + 12
+                color: "transparent"
+
+                Rectangle {
+                  anchors.fill: parent
+                  radius: 8
+                  color: "#f0171a17"
+                  border.width: 1
+                  border.color: "#3d5233"
+
+                  Column {
+                    id: menuColumn
+                    x: 6
+                    y: 6
+                    spacing: 1
+
+                    Repeater {
+                      model: trayMenuOpener.children
+
+                      delegate: Item {
+                        id: entry
+                        required property var modelData
+                        width: 228
+                        height: modelData.isSeparator ? 9 : 30
+
+                        MouseArea {
+                          id: entryMouse
+                          anchors.fill: parent
+                          visible: !entry.modelData.isSeparator
+                          enabled: entry.modelData.enabled
+                          hoverEnabled: true
+                          cursorShape: entry.modelData.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                          onClicked: {
+                            entry.modelData.triggered();
+                            trayMenu.visible = false;
+                          }
+                        }
+
+                        // Separator rule
+                        Rectangle {
+                          visible: entry.modelData.isSeparator
+                          anchors.centerIn: parent
+                          width: parent.width - 12
+                          height: 1
+                          color: "#485044"
+                        }
+
+                        // Hover highlight behind the row content
+                        Rectangle {
+                          visible: !entry.modelData.isSeparator
+                          anchors.fill: parent
+                          radius: 5
+                          color: entryMouse.containsMouse && entry.modelData.enabled ? "#2a3126" : "transparent"
+                          Behavior on color { ColorAnimation { duration: 120 } }
+                        }
+
+                        Row {
+                          visible: !entry.modelData.isSeparator
+                          anchors.fill: parent
+                          anchors.leftMargin: 10
+                          anchors.rightMargin: 10
+                          spacing: 8
+
+                          // Check / radio mark
+                          Text {
+                            visible: entry.modelData.buttonType !== QsMenuButtonType.None
+                            width: visible ? 14 : 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: entry.modelData.buttonType === QsMenuButtonType.RadioButton ? "●" : "✓"
+                            color: entry.modelData.checkState === Qt.Checked ? "#9bd45a" : "#5a6055"
+                            font.pixelSize: 11
+                            horizontalAlignment: Text.AlignHCenter
+                          }
+
+                          // Item label
+                          Text {
+                            width: parent.width - parent.spacing - (entry.modelData.buttonType !== QsMenuButtonType.None ? 22 : 0)
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: entry.modelData.text
+                            color: !entry.modelData.enabled ? "#5a6055"
+                                 : entryMouse.containsMouse ? "#e5e8dc" : "#a5a99d"
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                          }
+
+                          // Submenu arrow (rendered, not yet expandable)
+                          Text {
+                            visible: entry.modelData.hasChildren
+                            width: visible ? 12 : 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "›"
+                            color: "#5a6055"
+                            font.pixelSize: 14
+                            horizontalAlignment: Text.AlignHCenter
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
 
