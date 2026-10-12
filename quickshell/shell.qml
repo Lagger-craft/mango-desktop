@@ -5,6 +5,45 @@ import QtQuick
 import QtQuick.Controls
 
 ShellRoot {
+  // Shared volume OSD state: the volume-osd.sh helper writes
+  // "<monitor> <volume-fraction> <muted-0-or-1>" to this file; every screen's
+  // popup watches it and only the focused screen's popup shows.
+  Scope {
+    id: osd
+    property bool active: false
+    property string monitor: ""
+    property real volume: 0
+    property bool muted: false
+    readonly property string path: Quickshell.env("XDG_RUNTIME_DIR") + "/mango-volume-osd"
+
+    function show() {
+      active = true;
+      hideTimer.restart();
+    }
+
+    Timer {
+      id: hideTimer
+      interval: 1500
+      onTriggered: osd.active = false
+    }
+
+    FileView {
+      path: osd.path
+      watchChanges: true
+      printErrors: false
+      onFileChanged: this.reload()
+      onTextChanged: {
+        const parts = this.text().trim().split(/\s+/);
+        if (parts.length !== 3)
+          return;
+        osd.monitor = parts[0];
+        osd.volume = Math.max(0, Math.min(1, parseFloat(parts[1]) || 0));
+        osd.muted = parts[2] === "1";
+        osd.show();
+      }
+    }
+  }
+
   Variants {
     model: Quickshell.screens
 
@@ -21,6 +60,71 @@ ShellRoot {
         implicitHeight: 40
         exclusiveZone: 40
         color: "transparent"
+
+        // Volume OSD: bottom-right, only on the screen the helper reported as
+        // focused. Restyled by the Behavior animations below on every step.
+        PopupWindow {
+          id: volumeOsd
+          visible: osd.active && osd.monitor === panel.screen.name
+          anchor.window: panel
+          anchor.rect.x: panel.screen.width - width - 20
+          anchor.rect.y: panel.screen.height - height - 20
+          implicitWidth: 240
+          implicitHeight: 64
+          color: "transparent"
+
+          Rectangle {
+            anchors.fill: parent
+            radius: 8
+            color: "#f0171a17"
+            border.width: 1
+            border.color: osd.muted ? "#e0a030" : "#3d5233"
+
+            Row {
+              anchors.fill: parent
+              anchors.margins: 12
+              spacing: 10
+
+              Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: osd.muted ? "🔇" : "🔊"
+                font.pixelSize: 20
+              }
+
+              Column {
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - 44
+                spacing: 6
+
+                Text {
+                  text: osd.muted ? "MUTED" : "VOLUME " + Math.round(osd.volume * 100) + "%"
+                  color: osd.muted ? "#e0a030" : "#a6dc69"
+                  font.bold: true
+                  font.pixelSize: 12
+                  font.letterSpacing: 0.5
+                }
+
+                Rectangle {
+                  width: parent.width
+                  height: 6
+                  radius: 3
+                  color: "#282d26"
+
+                  Rectangle {
+                    width: parent.width * (osd.muted ? 0 : osd.volume)
+                    height: parent.height
+                    radius: 3
+                    color: osd.muted ? "#e0a030" : "#9bd45a"
+
+                    Behavior on width {
+                      NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
 
         Rectangle {
           anchors.fill: parent

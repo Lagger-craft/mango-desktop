@@ -57,6 +57,12 @@ never touches Niri or `~/.config/quickshell`. Packages are left installed on
 | Super+Up / Super+Down | Raise / lower volume by 5% |
 | Keyboard volume wheel/keys | Raise / lower volume by 5% |
 | Wheel press (`XF86AudioMute`) | Toggle mute |
+
+Volume changes show a small OSD popup at the bottom-right of the
+compositor-focused screen (percentage and progress bar; amber when muted). It
+auto-hides after 1.5 seconds and comes from `mango/scripts/volume-osd.sh`,
+which performs the `wpctl` action and writes the state for the QuickShell
+popup.
 | Super+Tab | Mango overview across tags |
 | Super+Space | Wofi application launcher |
 | Super+Alt+W | Choose and persist a local wallpaper |
@@ -134,7 +140,7 @@ is running.
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
-bash -n ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh
+bash -n ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh ./mango/scripts/volume-osd.sh
 git diff --check
 ```
 
