@@ -3,9 +3,9 @@
 Objective: add an idempotent auto-install script with dependency resolution
 (pacman first, yay/paru fallback for AUR), document it, and publish the
 repository to a private GitHub repo.
-Branch: `main` (local-only today; publish authorized as private repo
-`mango-desktop`). Delivery strategy: stacked-to-main, one work-unit commit per
-task. Test runner: `bash -n`, `install.sh --dry-run`, `mango -p`, `git diff --check`.
+Branch: `main`, published to the private repo
+`https://github.com/Lagger-craft/mango-desktop`. Delivery strategy:
+stacked-to-main, one work-unit commit per task. Test runner: `bash -n`, `install.sh --dry-run`, `mango -p`, `git diff --check`.
 
 ## Specs
 
@@ -49,11 +49,11 @@ task. Test runner: `bash -n`, `install.sh --dry-run`, `mango -p`, `git diff --ch
 
 ## Tasks
 
-- T1 (S1, inline): commit pending volume shortcuts + record in CM task doc.
-- T2 (S2, inline): add wheel mute binding + README row.
-- T3 (S3-S6, inline): write `install.sh` with `--dry-run`/`--uninstall`.
-- T4 (S7, inline): README `## Install` section.
-- T5 (S8, inline): user re-authenticates `gh`; create private repo; push.
+- T1 (S1, inline, done `9d1878b`): commit pending volume shortcuts + record in CM task doc.
+- T2 (S2, inline, done `71782a4`): add wheel mute binding + README row.
+- T3 (S3-S6, inline, done `dbc645d`): write `install.sh` with `--dry-run`/`--uninstall`.
+- T4 (S7, inline, done `dbc645d`): README `## Install` section.
+- T5 (S8, inline, done): user re-authenticated `gh`; private repo created; stack pushed to `main`.
 
 ## Log
 
@@ -81,3 +81,11 @@ task. Test runner: `bash -n`, `install.sh --dry-run`, `mango -p`, `git diff --ch
   dependency list because `Super+Shift+W` spawns it. Dry-run output was made
   truthful: action-confirming notes (`linked/removed/set/parses cleanly`) no
   longer print when the action was only simulated.
+- L6 (2026-10-12, evidence): user re-authenticated `gh` (account `Lagger-craft`,
+  `repo` scope). `gh repo create mango-desktop --private --source . --remote
+  origin --push` published the stack to
+  `https://github.com/Lagger-craft/mango-desktop`. GitHub created the pushed
+  branch `feature/chernobyl-mango-desktop` as default; renamed to `main`
+  (local + remote), default branch switched to `main`, old branch deleted via
+  the git refs API. Final state: visibility `private`, single branch `main`,
+  worktree clean.
