@@ -39,6 +39,7 @@ from its dedicated shortcut.
 | Super+Left mouse drag | Move focused window |
 | Super+Q | Close focused window |
 | Super+Shift+Q | Power menu |
+| Super+Shift+S | Select an area and save a timestamped PNG screenshot |
 | Super+1…9 | View tag 1…9 |
 | Super+Shift+1…9 | Move focused window to tag 1…9 |
 | Super+Left/Right | Previous/next tag |
