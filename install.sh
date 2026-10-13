@@ -108,6 +108,8 @@ if [[ "$MODE" == uninstall ]]; then
   echo "Reversing installer-created links (packages and wallpaper state stay):"
   remove_link "$HOME/.config/mango"
   remove_link "$HOME/.config/dunst/dunstrc"
+  remove_link "$HOME/.config/vesktop"
+  remove_link "$HOME/.zshrc"
   echo "For the rest (wallpaper process, wallpaper state, XDG browser), see README > Rollback."
   exit 0
 fi
@@ -149,6 +151,8 @@ fi
 echo "Linking configuration (existing paths are never overwritten):"
 link_config "$REPO_DIR/mango" "$HOME/.config/mango"
 link_config "$REPO_DIR/dunst/dunstrc" "$HOME/.config/dunst/dunstrc"
+link_config "$REPO_DIR/vesktop" "$HOME/.config/vesktop"
+link_config "$REPO_DIR/zsh/.zshrc" "$HOME/.zshrc"
 
 echo "Preparing user state:"
 run mkdir -p "$HOME/Pictures/Wallpapers"

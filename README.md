@@ -42,10 +42,18 @@ Dependency policy: official-repo packages are installed with `pacman`
 through the first available helper among `yay` and `paru` (`mpvpaper`). Set
 `AUR_HELPER=<helper>` to force one. The installer is idempotent and
 non-destructive: it never overwrites an existing config path (an occupied
-`~/.config/mango` or `~/.config/dunst/dunstrc` is reported as `SKIP` and left
-alone), it only sets the XDG default browser when none is configured, and it
-never touches Niri or `~/.config/quickshell`. Packages are left installed on
-`--uninstall`; see `## Rollback` for the rest.
+`~/.config/mango`, `~/.config/dunst/dunstrc`, `~/.config/vesktop`, or
+`~/.zshrc` is reported as `SKIP` and left alone), it only sets the XDG default
+browser when none is configured, and it never touches Niri or
+`~/.config/quickshell`. Packages are left installed on `--uninstall`; see
+`## Rollback` for the rest.
+
+The repository ships the live configuration for this profile: `mango/`
+(compositor config and scripts), `quickshell/shell.qml` (the panel, started
+directly from `mango/config.conf`, no symlink needed), `dunst/dunstrc`,
+`vesktop/` (themes and settings; `vesktop/sessionData/` is runtime state and
+stays untracked), and `zsh/.zshrc`. The installer links all of them into
+place.
 
 ## Controls
 
@@ -130,17 +138,18 @@ wallpaper process managed by this profile with:
 
 The selection and PID are stored under `${XDG_STATE_HOME:-~/.local/state}/mango`;
 remove that `mango` state directory only if you also want to forget the chosen
-image. This profile uses `~/.config/mango` and sets Firefox as the XDG default.
-Rollback those two user-level changes only if the Mango config link still points
-to this project; the existing Niri config and `~/.config/quickshell` symlink
-remain untouched. Mango's explicit output rules apply only while this profile
-is running.
+image. This profile links `~/.config/mango`, `~/.config/dunst/dunstrc`,
+`~/.config/vesktop`, and `~/.zshrc`, and sets Firefox as the XDG default;
+`./install.sh --uninstall` reverses exactly those links, while the Niri config
+and `~/.config/quickshell` are never touched. Mango's explicit output rules
+apply only while this profile is running.
 
 ## Validation
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
-bash -n ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh ./mango/scripts/volume-osd.sh
+bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh ./mango/scripts/volume-osd.sh
+./install.sh --dry-run
 git diff --check
 ```
 
