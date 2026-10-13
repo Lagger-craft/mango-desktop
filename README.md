@@ -74,11 +74,13 @@ popup.
 | Super+Tab | Mango overview across tags |
 | Super+Space | Wofi application launcher |
 | Super+Alt+W | Choose and persist a local wallpaper |
-| Super+V | Choose an item from local clipboard history |
+| Super+V | Choose an item from local clipboard history (press again to close) |
 | Super+/ | Open the static keyboard shortcut reference |
 | Super+H/J/K/L | Focus left/down/up/right |
 | Super+Shift+H/J/K/L | Move focused window left/down/up/right |
 | Super+Left mouse drag | Move focused window |
+| Super+Right mouse drag | Resize focused window |
+| Super+T | Toggle floating for focused window |
 | Super+Q | Close focused window |
 | Super+Shift+Q | Power menu |
 | Super+Shift+S | Select an area, save a timestamped PNG screenshot, and copy it |
@@ -95,16 +97,18 @@ secondary activates, right-click opens the item's menu), and power menu. Choose
 wallpapers with `Super+Alt+W`; there is no redundant panel button. The Wofi
 drun launcher displays desktop-entry icons. Controls have lightweight hover
 easing and tooltips. The power menu offers logout, reboot, and poweroff. Mango
-window and layer transitions use short slide animations; blur, shadows, and
-opacity effects remain disabled.
+window and layer transitions use short zoom/fade animations (open zoom, close
+fade, tag/move slides under 150 ms); blur, shadows, and opacity effects remain
+disabled.
 
 Clipboard history is collected by one Mango-session watcher and stored locally
 in cliphist's XDG cache. It retains at most 100 entries and skips individual
 items larger than 1 MiB (the watcher enforces this per-item cap because the
 installed cliphist 0.7.0 has no `max-store-size` option). The history may contain
 sensitive copied data; clear it with `cliphist wipe`. Canceling the `Super+V`
-picker leaves the current clipboard unchanged. `Super+/` displays a static list
-and does not execute selected text.
+picker leaves the current clipboard unchanged, and pressing `Super+V` while the
+picker is open closes it instead of opening a second one. `Super+/` displays a
+static list and does not execute selected text.
 
 The `Super+Shift+S` region screenshot is saved under
 `~/Pictures/Screenshots` and copied as a PNG image. Each successful capture

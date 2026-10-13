@@ -23,6 +23,14 @@ if [[ ${1:-} == --watch ]]; then
 fi
 
 # A canceled picker must not send empty input to wl-copy.
+# Toggle: if a picker is already open, Super+V closes it instead of stacking
+# another instance (previously each press spawned a new wofi).
+picker_pattern='wofi --dmenu.*Clipboard history'
+if pgrep -f -- "$picker_pattern" > /dev/null; then
+  pkill -f -- "$picker_pattern"
+  exit 0
+fi
+
 if ! selection=$(cliphist list | wofi --dmenu --style "$style" --prompt 'Clipboard history'); then
   exit 0
 fi
