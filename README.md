@@ -38,11 +38,12 @@ cd "$HOME/mango-desktop"
 
 Dependency policy: official-repo packages are installed with `pacman`
 (`mangowm`, `quickshell`, `foot`, `wofi`, `cliphist`, `wl-clipboard`, `grim`,
-`slurp`, `dunst`, `firefox`, `chromium`, `xdg-utils`); AUR-only packages go
+`slurp`, `dunst`, `firefox`, `chromium`, `xdg-utils`, `fastfetch`); AUR-only packages go
 through the first available helper among `yay` and `paru` (`mpvpaper`). Set
 `AUR_HELPER=<helper>` to force one. The installer is idempotent and
 non-destructive: it never overwrites an existing config path (an occupied
-`~/.config/mango`, `~/.config/dunst/dunstrc`, `~/.config/vesktop`, or
+`~/.config/mango`, `~/.config/dunst/dunstrc`, `~/.config/vesktop`,
+`~/.config/fastfetch`, or
 `~/.zshrc` is reported as `SKIP` and left alone), it only sets the XDG default
 browser when none is configured, and it never touches Niri or
 `~/.config/quickshell`. Packages are left installed on `--uninstall`; see
@@ -52,7 +53,8 @@ The repository ships the live configuration for this profile: `mango/`
 (compositor config and scripts), `quickshell/shell.qml` (the panel, started
 directly from `mango/config.conf`, no symlink needed), `dunst/dunstrc`,
 `vesktop/` (themes and settings; `vesktop/sessionData/` is runtime state and
-stays untracked), and `zsh/.zshrc`. The installer links all of them into
+stays untracked), `zsh/.zshrc`, and `fastfetch/` (the terminal system-info
+config and its custom skull ASCII logo). The installer links all of them into
 place.
 
 ## Controls

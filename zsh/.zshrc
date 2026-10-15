@@ -274,6 +274,10 @@ export SUDO_EDITOR=nvim
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.cargo/bin:$PATH"
 
+# Homebrew (appends after system dirs; lets fastfetch count brew packages)
+[[ -x /home/linuxbrew/.linuxbrew/bin/brew ]] &&
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
 
 # ── Greeting ──────────────────────────────────────────────────────────────────
 cat <<'EOF'

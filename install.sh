@@ -24,6 +24,7 @@ REPO_PKGS=(
   firefox      # default browser
   chromium     # fallback browser (Super+Shift+W)
   xdg-utils    # xdg-settings default-browser handling
+  fastfetch    # system info in the terminal
 )
 
 # AUR-only packages: no official-repo package provides these.
@@ -109,6 +110,7 @@ if [[ "$MODE" == uninstall ]]; then
   remove_link "$HOME/.config/mango"
   remove_link "$HOME/.config/dunst/dunstrc"
   remove_link "$HOME/.config/vesktop"
+  remove_link "$HOME/.config/fastfetch"
   remove_link "$HOME/.zshrc"
   echo "For the rest (wallpaper process, wallpaper state, XDG browser), see README > Rollback."
   exit 0
@@ -153,6 +155,7 @@ link_config "$REPO_DIR/mango" "$HOME/.config/mango"
 link_config "$REPO_DIR/dunst/dunstrc" "$HOME/.config/dunst/dunstrc"
 link_config "$REPO_DIR/vesktop" "$HOME/.config/vesktop"
 link_config "$REPO_DIR/zsh/.zshrc" "$HOME/.zshrc"
+link_config "$REPO_DIR/fastfetch" "$HOME/.config/fastfetch"
 
 echo "Preparing user state:"
 run mkdir -p "$HOME/Pictures/Wallpapers"
