@@ -1,9 +1,7 @@
 //@ pragma UseQApplication
 import Quickshell
 import Quickshell.Io
-import Quickshell.Services.SystemTray
 import QtQuick
-import QtQuick.Controls
 
 ShellRoot {
   // Shared volume OSD state: the volume-osd.sh helper writes
