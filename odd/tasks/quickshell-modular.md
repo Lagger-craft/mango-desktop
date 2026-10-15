@@ -8,6 +8,7 @@ Objective: split the monolithic `quickshell/shell.qml` (621 lines) into focused 
 - **S2** After each extraction, verify before touching the next module. Continue only when green. Quote: "Una vez que se vaya separando por modulos se va probando y si funciona y no muestra errores se continua con la siguiente implementacion". Green = all of: `qmllint` clean on every QML file; no new QML errors in `~/.local/share/sddm/wayland-session.log`; quickshell PID still alive after hot reload; screenshot shows the bar unchanged.
 - **S3** Final layout: `quickshell/shell.qml` keeps `ShellRoot`, the shared `osd` Scope (cross-process FileView state), and the `Variants`/`PanelWindow` orchestrator only (~60-100 lines). New files: `quickshell/Clock.qml`, `quickshell/PowerButton.qml`, `quickshell/VolumeOsd.qml`, `quickshell/Tray.qml`, `quickshell/Tags.qml`.
 - **S4** Pure refactor: zero visual or behavioral change. Same colors, layout, animations, tooltips, click behavior, tray menu async timing, OSD file protocol, and `mmsg` tag streaming. No restyling, no new features.
+- **S5** Sub-split of Tags.qml (user-approved): extract `SkullTag.qml` holding the skull art (bitmap + outline computation) and the per-tag delegate rendering; click dispatches through a `tagClicked(int)` signal handled by Tags.qml. Tags keeps `tagState`, the `mmsg` processes, and the bar layout.
 
 ## Tasks
 
@@ -19,6 +20,7 @@ Objective: split the monolithic `quickshell/shell.qml` (621 lines) into focused 
 | T4 | S1,S2,S4 | inline | verified | a4da16f |
 | T5 | S1,S2,S4 | inline | verified | 82a2cec |
 | T6 | S3,S2,S4 | inline | verified | 48492c6 |
+| T7 | S5,S2,S4 | inline | verified | 4b04c5d |
 
 Route note: every stage is a small, fully-understood extraction verified inline (qmllint + reload log + screenshot); no parallel units and no context backstop, so no writer delegation trigger fires.
 
@@ -33,3 +35,5 @@ Route note: every stage is a small, fully-understood extraction verified inline 
 - **L7** (T5): verified with a 600x40 pixel crop of the left bar, baseline vs post-change — identical (ZONE, 9 skulls with active green, screen name, clock). The 3 `mmsg watch tags` processes (DP-1, DP-2, HDMI-A-1) run from inside Tags.qml, proving the extracted stream populates tagState.
 - **L8** (T3/T6): OSD verified functionally twice: `volume-osd.sh` trigger and manual state-file write (`HDMI-A-1 0.42 0`) → popup renders "VOLUME 42%". Note: screenshots are 5560x1920 (3 outputs: 1920+2560+1080); bottom-right OSD crop zones must account for output scale — a black crop does not prove absence, always confirm on the full frame.
 - **L9** (T6): `shell.qml` final = 115 lines, pure orchestrator (ShellRoot > osd Scope + Variants > PanelWindow > VolumeOsd/Tags/Clock/Tray/PowerButton). Total QML: 672 lines across 7 files (was 621 in 1). Unused imports after extraction: `Quickshell.Services.SystemTray`, `QtQuick.Controls`.
+- **L10** (user): tray interactions confirmed working by the user — left and right click, "sin ningún problema". This closes the interaction verification gap left open at T4/T5 close.
+- **L11** (user decision): sub-split Tags.qml. Verdict was that the problem is NOT the same as the original T5 — state/protocols already isolated, only pure rendering moves. Result: Tags.qml 100 lines (state + mmsg + layout), SkullTag.qml 127 lines (art + delegate + `tagClicked` signal), pixel-identical skulls after reload. Note: T7 committed directly on `main` (single verified stage after the branch was merged).
