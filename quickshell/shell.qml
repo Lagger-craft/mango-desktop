@@ -127,6 +127,99 @@ ShellRoot {
           }
         }
 
+        // 16x16 pixel skull with a hard dark outline, no anti-aliasing: angular
+        // cranium, tall hollow sockets and a narrow jaw, in the spirit of State
+        // of Decay's HUD art. '#' marks bone.
+        readonly property var skullRows: [
+          ".....######.....",
+          "....########....",
+          "...##########...",
+          "..############..",
+          "..############..",
+          ".##############.",
+          ".##############.",
+          ".###.######.###.",
+          ".###.######.###.",
+          ".###.######.###.",
+          "..##.######.##..",
+          "..############..",
+          "...####..####...",
+          "...##.####.##...",
+          "...##########...",
+          "....##.##.##....",
+        ]
+        readonly property int skullSize: 16
+        readonly property int skullPixel: 1
+
+        // Cells around the bone that stay empty but sit next to it. They get
+        // painted first as a hard outline, which is what gives the skull its
+        // game-HUD weight instead of a flat stencil.
+        readonly property var skullOutline: {
+          const bone = new Set();
+          for (let r = 0; r < panel.skullSize; r++)
+            for (let c = 0; c < panel.skullSize; c++)
+              if (panel.skullRows[r].charAt(c) === "#")
+                bone.add(r * panel.skullSize + c);
+
+          const edge = [];
+          for (const cell of bone) {
+            const r = Math.floor(cell / panel.skullSize);
+            const c = cell - r * panel.skullSize;
+            for (let dr = -1; dr <= 1; dr++)
+              for (let dc = -1; dc <= 1; dc++) {
+                const rr = r + dr, cc = c + dc;
+                if (rr < 0 || rr >= panel.skullSize || cc < 0 || cc >= panel.skullSize)
+                  continue;
+                const neighbour = rr * panel.skullSize + cc;
+                if (!bone.has(neighbour) && !edge.includes(neighbour))
+                  edge.push(neighbour);
+              }
+          }
+          return edge;
+        }
+
+        // Live tag state for this screen only. `mmsg watch tags <monitor>`
+        // keeps the IPC socket open and streams one JSON object per line on
+        // every tag change (active tag, urgent flag, window count).
+        QtObject {
+          id: tagState
+          property var tags: []
+        }
+
+        Process {
+          id: tagWatch
+          running: true
+          command: ["mmsg", "watch", "tags", panel.screen.name]
+
+          stdout: SplitParser {
+            onRead: line => {
+              if (!line.trim().length)
+                return;
+              try {
+                const state = JSON.parse(line);
+                if (state.monitor === panel.screen.name)
+                  tagState.tags = state.tags;
+              } catch (e) {
+                // Malformed or partial line: skip it, the next update fixes it.
+              }
+            }
+          }
+
+          // Restart if the stream ever drops (compositor restart, socket hiccup).
+          onExited: tagRestart.restart()
+        }
+
+        Timer {
+          id: tagRestart
+          interval: 1000
+          onTriggered: tagWatch.running = true
+        }
+
+        Process {
+          id: viewTagProcess
+          command: ["mmsg", "dispatch", "view,1"]
+        }
+
         Rectangle {
           anchors.fill: parent
           color: "#e8171a17"
@@ -164,8 +257,97 @@ ShellRoot {
                 anchors.verticalCenter: parent.verticalCenter
               }
 
+              // Per-monitor workspaces as pixel skulls. Click one to jump to
+              // that tag on this screen.
+              Row {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4
+
+                Repeater {
+                  model: tagState.tags
+
+                  delegate: Item {
+                    id: skull
+                    required property var modelData
+                    width: panel.skullPixel * panel.skullSize
+                    height: panel.skullPixel * panel.skullSize
+
+                    // Radioactive green for the visible tag, warning amber for
+                    // an urgent one, bone when it holds windows, moss when empty.
+                    readonly property color tint: modelData.is_active ? "#9bd45a"
+                                                 : modelData.is_urgent ? "#e0a030"
+                                                 : modelData.client_count > 0 ? "#e4dfcf"
+                                                 : "#3d5233"
+
+                    // Subtle pad behind the active skull only.
+                    Rectangle {
+                      anchors.fill: parent
+                      anchors.margins: -2
+                      radius: 5
+                      color: skull.modelData.is_active ? "#262b24" : "transparent"
+                      Behavior on color { ColorAnimation { duration: 150 } }
+                    }
+
+                    // Hard outline painted under the bone.
+                    Repeater {
+                      model: panel.skullOutline
+
+                      Rectangle {
+                        required property int modelData
+                        x: (modelData % panel.skullSize) * panel.skullPixel
+                        y: Math.floor(modelData / panel.skullSize) * panel.skullPixel
+                        width: panel.skullPixel
+                        height: panel.skullPixel
+                        color: "#0c0e0c"
+                      }
+                    }
+
+                    Repeater {
+                      model: panel.skullSize * panel.skullSize
+
+                      Rectangle {
+                        required property int index
+                        readonly property int row: Math.floor(index / panel.skullSize)
+                        readonly property int col: index - row * panel.skullSize
+                        visible: panel.skullRows[row].charAt(col) === "#"
+                        x: col * panel.skullPixel
+                        y: row * panel.skullPixel
+                        width: panel.skullPixel
+                        height: panel.skullPixel
+                        color: skull.tint
+                        Behavior on color { ColorAnimation { duration: 150 } }
+                      }
+                    }
+
+                    MouseArea {
+                      id: skullMouse
+                      anchors.fill: parent
+                      hoverEnabled: true
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: {
+                        viewTagProcess.command = ["mmsg", "dispatch", "view," + skull.modelData.index];
+                        viewTagProcess.running = true;
+                      }
+                    }
+
+                    ToolTip.visible: skullMouse.containsMouse
+                    ToolTip.text: "Tag " + skull.modelData.index
+                                + " · " + skull.modelData.client_count
+                                + (skull.modelData.client_count === 1 ? " window" : " windows")
+                    ToolTip.delay: 400
+                  }
+                }
+              }
+
+              Rectangle {
+                width: 1
+                height: 18
+                color: "#485044"
+                anchors.verticalCenter: parent.verticalCenter
+              }
+
               Text {
-                text: "TAGS  1–9"
+                text: panel.screen.name
                 color: "#a5a99d"
                 font.pixelSize: 11
                 anchors.verticalCenter: parent.verticalCenter
