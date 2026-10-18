@@ -21,9 +21,12 @@ No config symlink or copy is needed. Mango starts Quickshell and restores each
 monitor's last wallpaper; when no valid selection exists yet (a fresh install,
 or the selected file was removed since) it falls back to the shipped default
 background instead of starting blank. Quickshell makes a reserved top panel for
-every connected screen. The panel uses a left zone/tag hint, centered date and time,
-and right-aligned system tray and power control. Its charcoal surface
-is translucent but intentionally has no compositor blur. Firefox is launched
+every connected screen. The panel renders as three floating islands with
+compositor layer blur: a left zone/tag island, a centered clock island, and a
+right island with the system tray, the notification center, and the power icon.
+Their charcoal surface is translucent, so the live backdrop behind the bar
+frosts into the island bodies (glass effect); windows stay opaque, so window
+blur never shows. Firefox is launched
 explicitly by its shortcut, while Chromium remains available as a fallback.
 Firefox is configured as the XDG default browser; Chromium remains available
 from its dedicated shortcut.
@@ -68,7 +71,7 @@ place.
 | Shortcut | Action |
 | --- | --- |
 | Super+Return | Foot terminal |
-| Super+W | Firefox |
+| Super+W | Zen browser |
 | Super+Shift+W | Chromium fallback |
 | Super+Up / Super+Down | Raise / lower volume by 5% |
 | Keyboard volume wheel/keys | Raise / lower volume by 5% |
@@ -79,7 +82,7 @@ compositor-focused screen (percentage and progress bar; amber when muted). It
 auto-hides after 1.5 seconds and comes from `mango/scripts/volume-osd.sh`,
 which performs the `wpctl` action and writes the state for the QuickShell
 popup.
-| Super+Tab | Mango overview across tags |
+| Super+Tab | Mango overview (drag apps to tags/monitors) |
 | Super+Space | Wofi application launcher |
 | Super+Alt+W | Open the wallpaper picker (local + Steam Workshop) |
 | Super+V | Choose an item from local clipboard history (press again to close) |
@@ -90,7 +93,7 @@ popup.
 | Super+Right mouse drag | Resize focused window |
 | Super+T | Toggle floating for focused window |
 | Super+Q | Close focused window |
-| Super+Shift+Q | Power menu |
+| Super+Shift+Q | Power menu (press again to close) |
 | Super+Shift+S | Select an area, save a timestamped PNG screenshot, and copy it |
 | Super+1…9 | View tag 1…9 |
 | Super+Shift+1…9 | Move focused window to tag 1…9 |
@@ -99,16 +102,35 @@ popup.
 | Alt+F | Toggle fullscreen |
 | Super+R | Reload Mango config |
 | Super+Shift+E | Log out of Mango |
+| Super+N | Cycle the tag layout (tile <-> vertical_tile) |
 
-The panel includes a clock, system tray (left-click activates, middle-click
-secondary activates, right-click opens the item's menu), and power menu. The
-`Super+Alt+W` wallpaper picker is a QuickShell overlay, not a Wofi menu (see
+Window layouts are per tag. Every tag starts in Mango's `vertical_tile`
+layout via a tag rule (`master plus windows tiled side by side in
+horizontal rows`; plain `tile` stacks them vertically); `Super+N` cycles
+the current tag through `circle_layout` in `mango/config.conf`
+(`vertical_tile` <-> `tile`) and a reload resets to the default.
+
+The panel includes a clock (clicking it toggles a calendar popup under the
+island, or `Super`-bindable `quickshell ipc call calendar toggle`), a ZONE
+label that opens the dashboard, a system tray (left-click activates,
+middle-click secondary activates, right-click opens the item's menu), a
+notification icon that opens a Dunst-backed review panel (history, re-show
+one or the latest, clear history, close displayed), and an icon-only power
+control. The dashboard is a dimmed full-screen overlay (the ZONE label or
+`quickshell ipc call dashboard toggle`) with Dunst notification history,
+live CPU/RAM/uptime/kernel figures, the active MPRIS player, and session
+actions (logout, reboot, poweroff). The `Super+Alt+W` wallpaper picker is a QuickShell overlay, not a Wofi menu (see
 `## Wallpapers`); there is no redundant panel button. The Wofi
 drun launcher displays desktop-entry icons. Controls have lightweight hover
 easing and tooltips. The power menu offers logout, reboot, and poweroff. Mango
 window and layer transitions use short zoom/fade animations (open zoom, close
-fade, tag/move slides under 150 ms); blur, shadows, and opacity effects remain
-disabled.
+fade, tag/move slides under 150 ms); shadows and opacity effects remain
+disabled. The island panels use real compositor blur: `blur=1` plus
+`blur_layer=1` with `blur_optimized=0`, so the islands frost whatever is
+behind the bar (the cheaper `blur_optimized=1` mode only renders a flat dark
+backdrop). Windows stay at opacity 1.0 so window blur never visibly renders,
+and Steam games carry `no_blur:1` to keep the fullscreen path free of
+window blur.
 
 Clipboard history is collected by one Mango-session watcher and stored locally
 in cliphist's XDG cache. It retains at most 100 entries and skips individual
@@ -129,7 +151,9 @@ Dunst remains the sole notification daemon. The project provides
 exist, link it to `$HOME/mango-desktop/dunst/dunstrc` and apply it to the running
 daemon with `dunstctl reload`. To roll back, remove only that link if it still
 points to this project and run `dunstctl reload` again to restore Dunst's
-default configuration. Do not start a second notification server.
+default configuration. Do not start a second notification server. The
+QuickShell notification icon is a reader over `dunstctl` (counts and history),
+not a second server, so it adds no notification daemon of its own.
 
 The project's scripts and configuration perform no network requests and fetch
 no remote assets. This guarantee applies only to this project's code; browsers

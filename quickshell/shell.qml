@@ -127,6 +127,87 @@ ShellRoot {
     }
   }
 
+  // Dashboard overlay state (S2/S3): toggled by the ZONE label click or the
+  // `quickshell ipc call dashboard toggle` bind; opens on the focused
+  // monitor. The full-screen overlay lives in the per-screen Variants below.
+  Scope {
+    id: dashboard
+    property bool active: false
+    property string activeMonitor: ""
+
+    IpcHandler {
+      target: "dashboard"
+      function toggle(): void { dashboard.toggle() }
+    }
+
+    // Ask the compositor which monitor is focused so the overlay opens there.
+    Process {
+      id: dashboardMonitorQuery
+      command: ["mmsg", "get", "all-monitors"]
+      stdout: SplitParser {
+        onRead: line => {
+          if (!line.trim().length)
+            return;
+          try {
+            const mons = JSON.parse(line).monitors || [];
+            for (const m of mons)
+              if (m.active) {
+                dashboard.activeMonitor = m.name;
+                break;
+              }
+          } catch (e) {
+            // Malformed line: the next toggle re-queries.
+          }
+        }
+      }
+    }
+
+    function close() { active = false; }
+
+    function toggle() {
+      if (active) { active = false; return; }
+      dashboardMonitorQuery.running = true;
+      active = true;
+    }
+  }
+
+  // Calendar popup state (S1): toggled by a clock-island click or
+  // `quickshell ipc call calendar toggle`; per-screen popups below watch
+  // active and position themselves under the clock island.
+  Scope {
+    id: calendarState
+    property bool active: false
+    // Anchor requested by the latest click: the click writes the exact
+    // coordinates; each screen's popup applies them when it becomes visible.
+    // Anchors must not be passed by cross-Variants id here: ids of sibling
+    // delegate Components do not resolve from another delegate's JS.
+    property real clickX: 0    function toggleAt(screenName, xOnPanel) {
+      targetMonitor = screenName;
+      clickX = xOnPanel;
+      if (active) { active = false; return; }
+      active = true;
+    }
+    property string targetMonitor: ""
+
+    // IPC opens have no click: they resolve to the focused monitor; empty
+    // targetMonitor means "delegate the choice to the monitor query".
+    readonly property string requestedMonitor:
+      targetMonitor !== "" ? targetMonitor : calendarTargetMonitor.monitor
+
+    IpcHandler {
+      target: "calendar"
+      function toggle(): void {
+        if (calendarState.active) {
+          calendarState.active = false;
+          return;
+        }
+        calendarState.targetMonitor = "";
+        calendarTargetMonitor.requery();
+        calendarState.active = true;
+      }
+    }
+  }
+
   Variants {
     model: Quickshell.screens
 
@@ -140,8 +221,8 @@ ShellRoot {
           left: true
           right: true
         }
-        implicitHeight: 40
-        exclusiveZone: 40
+        implicitHeight: 44
+        exclusiveZone: 44
         color: "transparent"
 
         // Volume OSD: bottom-right, only on the screen the helper reported as
@@ -151,45 +232,179 @@ ShellRoot {
           osdState: osd
         }
 
+        // The bar renders as three floating islands instead of one solid
+        // strip: translucent charcoal + green hairline border, so Mango's
+        // layer blur (blur_layer=1) frosts only the island bodies while the
+        // gaps stay crisp wallpaper.
+
+        // Left island: zone label, tag skulls, screen name.
         Rectangle {
-          anchors.fill: parent
-          color: "#e8171a17"
+          id: leftIsland
+          anchors {
+            left: parent.left
+            leftMargin: 8
+            verticalCenter: parent.verticalCenter
+          }
+          height: 30
+          width: tagsRow.implicitWidth + 24
+          radius: 10
+          color: "#b3171a17"
+          border.width: 1
+          border.color: "#599bd45a"
+
+          Rectangle { // toxic top accent, inset past the rounded corners
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.topMargin: 1
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            height: 2
+            color: "#9bd45a"
+          }
+
+          Row {
+            id: tagsRow
+            anchors.centerIn: parent
+            Tags {
+              screenName: panel.screen.name
+
+              onZoneClicked: dashboard.toggle()
+            }
+          }
+        }
+
+        // Center island: clock.
+        Rectangle {
+          id: centerIsland
+          anchors {
+            horizontalCenter: parent.horizontalCenter
+            verticalCenter: parent.verticalCenter
+          }
+          height: 30
+          width: clock.implicitWidth + 28
+          radius: 10
+          color: "#b3171a17"
+          border.width: 1
+          border.color: "#599bd45a"
 
           Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
+            anchors.topMargin: 1
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
             height: 2
             color: "#9bd45a"
           }
 
-          Item {
+          Clock {
+            id: clock
+            anchors.centerIn: parent
+          }
+
+          // Clock island click -> calendar popup below the island (S1). The
+          // popup anchors to the bar window's bottom edge, horizontally
+          // centered on the island (same geometry as the tray menu popup).
+          // Open on clicked (after release), not on pressed: opening during
+          // the press installs an input grab, and the same click's release
+          // then arrives as an "outside click", closing the popup instantly.
+          // The heavy lifting lives in calendarState.toggleAt().
+          MouseArea {
+            id: clockMouse
             anchors.fill: parent
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              const point = panel.mapFromItem(centerIsland, centerIsland.width / 2, 0);
+              calendarState.toggleAt(panel.screen.name, point.x);
+            }
+          }
+        }
 
-            Tags {
-              anchors.left: parent.left
-              anchors.verticalCenter: parent.verticalCenter
-              screenName: panel.screen.name
+        // Right island: system tray, notification center, power icon.
+        Rectangle {
+          id: rightIsland
+          anchors {
+            right: parent.right
+            rightMargin: 8
+            verticalCenter: parent.verticalCenter
+          }
+          height: 30
+          width: actionsRow.implicitWidth + 20
+          radius: 10
+          color: "#b3171a17"
+          border.width: 1
+          border.color: "#599bd45a"
+
+          Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.topMargin: 1
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            height: 2
+            color: "#9bd45a"
+          }
+
+          Row {
+            id: actionsRow
+            anchors.centerIn: parent
+            spacing: 6
+
+            Tray {
+              panelWindow: panel
             }
 
-            Clock {
-              anchors.centerIn: parent
+            Notifications {
+              panelWindow: panel
             }
 
-            Row {
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              spacing: 5
+            PowerButton {}
+          }
+        }
+      }
+    }
+  }
 
-              Tray {
-                panelWindow: panel
-              }
+  // Calendar popup: every screen owns one anchored below its clock island;
+  // only the popup on the target screen becomes visible.
+  Variants {
+    model: Quickshell.screens
 
-              PowerButton {
-                anchors.verticalCenter: parent.verticalCenter
-              }
+    delegate: Component {
+      PanelWindow {
+        id: calendarWindow
+        required property var modelData
+        screen: modelData
+        color: "transparent"
+        anchors { top: true; left: true; right: true }
+        implicitHeight: 44
+        // Anchor-only host for the calendar popup; the bar itself reserves
+        // the exclusive zone, so reserving again here would push the bar
+        // down by 44px (stacked exclusive zones).
+        exclusiveZone: 0
+
+        property bool isTarget: modelData.name === calendarState.targetMonitor
+
+        CalendarPopup {
+          panelWindow: calendarWindow
+          visible: calendarState.active && calendarWindow.isTarget
+
+          // Anchor application: a mouse click wrote exact coordinates
+          // (calendarState.clickX); an IPC open falls back to centered
+          // under the clock island (centered on the bar) at the bar's
+          // bottom edge.
+          onVisibleChanged: {
+            if (!visible)
+              return;
+            anchor.rect.y = calendarWindow.implicitHeight;
+            if (calendarState.clickX > 0) {
+              anchor.rect.x = Math.max(8, Math.min(calendarState.clickX - width / 2, calendarWindow.width - width - 8));
+              calendarState.clickX = 0;
+            } else {
+              anchor.rect.x = Math.max(8, (calendarWindow.width - width) / 2);
             }
           }
         }
@@ -197,8 +412,36 @@ ShellRoot {
     }
   }
 
-  // Wallpaper picker overlay: one dimmed full-screen window per screen, shown
-  // only on the active monitor while the picker is toggled on.
+  // The one screen the calendar popup appears on: the currently focused
+  // monitor, re-queried each time the IPC toggle opens it.
+  Scope {
+    id: calendarTargetMonitor
+    property string monitor: ""
+
+    function requery() { calendarMonitorQuery.running = true; }
+
+    Process {
+      id: calendarMonitorQuery
+      command: ["mmsg", "get", "all-monitors"]
+      stdout: SplitParser {
+        onRead: line => {
+          if (!line.trim().length)
+            return;
+          try {
+            const mons = JSON.parse(line).monitors || [];
+            for (const m of mons)
+              if (m.active) {
+                calendarTargetMonitor.monitor = m.name;
+                break;
+              }
+          } catch (e) {
+            // Keep the previous monitor on a malformed line.
+          }
+        }
+      }
+    }
+  }
+
   Variants {
     model: Quickshell.screens
 
@@ -221,6 +464,36 @@ ShellRoot {
 
         WallpaperPicker {
           pickerState: picker
+          anchors.fill: parent
+        }
+      }
+    }
+  }
+
+  // Dashboard overlay: one dimmed full-screen window per screen, shown only
+  // on the focused monitor while the dashboard is toggled on (S3).
+  Variants {
+    model: Quickshell.screens
+
+    delegate: Component {
+      PanelWindow {
+        id: dashboardWindow
+        required property var modelData
+        screen: modelData
+        visible: dashboard.active && modelData.name === dashboard.activeMonitor
+        color: "transparent"
+        anchors {
+          top: true
+          bottom: true
+          left: true
+          right: true
+        }
+        exclusiveZone: 0
+        aboveWindows: true
+        focusable: true
+
+        Dashboard {
+          dashboardState: dashboard
           anchors.fill: parent
         }
       }

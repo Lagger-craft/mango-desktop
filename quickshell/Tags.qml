@@ -9,6 +9,10 @@ Row {
   spacing: 12
   required property string screenName // e.g. "DP-1"
 
+  // Emitted when the ZONE label is clicked; shell.qml toggles the
+  // dashboard overlay on it (S3).
+  signal zoneClicked()
+
   // Live tag state for this screen only. `mmsg watch tags <monitor>`
   // keeps the IPC socket open and streams one JSON object per line on
   // every tag change (active tag, urgent flag, window count).
@@ -51,12 +55,33 @@ Row {
     command: ["mmsg", "dispatch", "view,1"]
   }
 
-  Text {
-    text: "☢  ZONE"
-    color: "#a6dc69"
-    font.bold: true
-    font.pixelSize: 13
+  // Dashboard trigger (S3): the ZONE label opens the dashboard. Hover
+  // recolor gives touch feedback; press emits zoneClicked. Anchors are
+  // forbidden for Row children, so the hit area is a plain sibling Item
+  // wrapping the label.
+  Item {
+    width: zoneLabel.width + 12
+    height: parent.height
     anchors.verticalCenter: parent.verticalCenter
+
+    Text {
+      id: zoneLabel
+      anchors.centerIn: parent
+      text: "☢  ZONE"
+      color: zoneMouse.containsMouse ? "#c8f085" : "#a6dc69"
+      font.bold: true
+      font.pixelSize: 13
+
+      Behavior on color { ColorAnimation { duration: 120 } }
+    }
+
+    MouseArea {
+      id: zoneMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onPressed: tagsRoot.zoneClicked()
+    }
   }
 
   Rectangle {
