@@ -167,6 +167,10 @@ strategy: stacked-to-main, one work-unit commit per unit. Test runner:
   Committed as `037f172`. The earlier `list`-empty bug (jq multi-line JSON vs
   SplitParser) was `cbafda3`. Test artifacts (stray mpvpaper/lwe, state)
   removed; the user's original mpvpaper (3231) left intact.
+- Delivery (2026-10-17): pushed `feature/wallpaper-picker` to origin
+  (`github.com/Lagger-craft/mango-desktop`, HEAD `551d592`) at the user's
+  request on a branch other than main; origin/main left untouched at `aa376c0`.
+  No PR opened (push ≠ PR; that decision stays with the user).
 - Risk: item 3 (contracts others consume) — the wallpaper flow moved from the
   Wofi script to `wallpaper-ctl.sh` + a QuickShell overlay, and
   `Super+Alt+W`/`exec_once` now target the new path; the old script was removed.
