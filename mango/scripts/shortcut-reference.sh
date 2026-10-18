@@ -5,9 +5,11 @@ style="$HOME/mango-desktop/mango/wofi.css"
 
 printf '%s\n' \
   'Super+Return — Foot terminal' \
-  'Super+W — Firefox' \
+  'Super+W — Zen browser' \
   'Super+Shift+W — Chromium fallback' \
-  'Super+Tab — Mango overview' \
+  'Super+Tab — Mango overview (drag apps to tags/monitors)' \
+  'Super+N — Cycle tag layout (tile <-> vertical_tile)' \
+  'Super+Esc — Dashboard' \
   'Super+Space — Application launcher' \
   'Super+Alt+W — Wallpaper picker' \
   'Super+V — Clipboard history (press again to close)' \
