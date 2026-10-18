@@ -4,7 +4,9 @@ This repository is an optional personal MangoWM setup. It does not replace or
 remove Niri and leaves shared dotfiles untouched. Package installation is
 opt-in through the included `install.sh` (see `## Install`). It uses local
 images in `~/Pictures/Wallpapers` and the MangoWM, Quickshell, Foot, Wofi,
-mpvpaper, Firefox, and Chromium stack described below.
+mpvpaper, Firefox, and Chromium stack described below. A default background is
+shipped at `mango/wallpapers/default.png` so that a fresh install always
+renders a desktop rather than a blank screen.
 
 ## Try it
 
@@ -15,8 +17,10 @@ mango -c "$HOME/mango-desktop/mango/config.conf"
 ```
 
 No config symlink or copy is needed. Mango starts Quickshell and restores the
-last selected wallpaper; Quickshell makes a reserved top panel for every
-connected screen. The panel uses a left zone/tag hint, centered date and time,
+last selected wallpaper; when no valid selection exists yet (a fresh install,
+or the selected file was removed since) it falls back to the shipped default
+background instead of starting blank. Quickshell makes a reserved top panel for
+every connected screen. The panel uses a left zone/tag hint, centered date and time,
 and right-aligned system tray and power control. Its charcoal surface
 is translucent but intentionally has no compositor blur. Firefox is launched
 explicitly by its shortcut, while Chromium remains available as a fallback.
@@ -133,6 +137,12 @@ preserves the image aspect ratio and fills each screen by cropping its edges;
 portrait displays crop more of a landscape image. A fullscreen window pauses the
 shared wallpaper renderer on all outputs.
 
+`install.sh` copies `mango/wallpapers/default.png` into `~/Pictures/Wallpapers`
+only when that directory holds no image yet, so an existing background is never
+overwritten. Once you pick your own image with `Super+Alt+W` the default is
+simply another entry in the list; delete it from `~/Pictures/Wallpapers` to
+remove it.
+
 ## Rollback
 
 Log out with Super+Shift+E, or exit the compositor normally. Stop only the
@@ -144,7 +154,9 @@ wallpaper process managed by this profile with:
 
 The selection and PID are stored under `${XDG_STATE_HOME:-~/.local/state}/mango`;
 remove that `mango` state directory only if you also want to forget the chosen
-image. This profile links `~/.config/mango`, `~/.config/dunst/dunstrc`,
+image. `./install.sh --uninstall` deliberately leaves `~/Pictures/Wallpapers`
+alone, so a seeded `default.png` stays behind until you delete it yourself.
+This profile links `~/.config/mango`, `~/.config/dunst/dunstrc`,
 `~/.config/vesktop`, and `~/.zshrc`, and sets Firefox as the XDG default;
 `./install.sh --uninstall` reverses exactly those links, while the Niri config
 and `~/.config/quickshell` are never touched. Mango's explicit output rules

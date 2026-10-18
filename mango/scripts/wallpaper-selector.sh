@@ -31,12 +31,35 @@ start_wallpaper() {
   printf '%s\n' "$image" > "$selection_file"
 }
 
+# Deterministic fallback: the seeded default wins so a fresh session always
+# starts the same way, otherwise the alphabetically first image.
+pick_fallback() {
+  if [[ -f "$wallpaper_dir/default.png" ]]; then
+    printf '%s\n' "$wallpaper_dir/default.png"
+    return 0
+  fi
+  find "$wallpaper_dir" -maxdepth 1 -type f \
+    \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+    -print 2>/dev/null | sort | head -n 1
+}
+
 if [[ "${1:-}" == --restore ]]; then
+  selected=""
   if [[ -r "$selection_file" ]]; then
     IFS= read -r selected < "$selection_file" || true
-    if [[ -n "${selected:-}" && "$selected" == "$wallpaper_dir"/* ]]; then
-      start_wallpaper "$selected"
-    fi
+  fi
+  # Honour the persisted choice only while the file it points at still exists;
+  # a deleted image must not strand the desktop on a blank screen.
+  if [[ -n "${selected:-}" && "$selected" == "$wallpaper_dir"/* && -f "$selected" ]]; then
+    start_wallpaper "$selected"
+    exit 0
+  fi
+  # No valid persisted selection (fresh install, or the image was removed
+  # since): fall back to whatever is present instead of exiting silently and
+  # leaving the user with an empty desktop and no diagnostic.
+  fallback="$(pick_fallback)"
+  if [[ -n "$fallback" ]]; then
+    start_wallpaper "$fallback"
   fi
   exit 0
 fi

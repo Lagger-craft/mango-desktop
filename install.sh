@@ -10,6 +10,10 @@ set -euo pipefail
 
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
+# Shipped fallback background, seeded on first install so a fresh machine
+# renders a desktop instead of a blank screen (see wallpaper-selector.sh).
+readonly DEFAULT_WALLPAPER="$REPO_DIR/mango/wallpapers/default.png"
+
 # Official-repo packages used by this profile.
 REPO_PKGS=(
   mangowm      # compositor
@@ -74,6 +78,13 @@ done
 command -v pacman >/dev/null 2>&1 || die "pacman not found: this installer supports Arch Linux only."
 [[ "$REPO_DIR" == "$HOME/mango-desktop" ]] ||
   die "clone location: Mango's config references \$HOME/mango-desktop, but this repository is at $REPO_DIR. Move or clone it to \$HOME/mango-desktop."
+
+# True when the directory already holds at least one background image.
+wallpapers_present() {
+  [[ -n "$(find "$1" -maxdepth 1 -type f \
+    \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
+    -print -quit 2>/dev/null)" ]]
+}
 
 # Symlink src -> dest, refusing to touch anything that already exists there.
 link_config() {
@@ -159,6 +170,19 @@ link_config "$REPO_DIR/fastfetch" "$HOME/.config/fastfetch"
 
 echo "Preparing user state:"
 run mkdir -p "$HOME/Pictures/Wallpapers"
+
+# Seed the shipped default only when the user has no background of their own;
+# an existing image is never overwritten. Without at least one image,
+# wallpaper-selector.sh --restore has nothing to restore and the desktop comes
+# up blank with no diagnostic.
+if wallpapers_present "$HOME/Pictures/Wallpapers"; then
+  note "wallpapers already present; nothing seeded"
+elif [[ -f "$DEFAULT_WALLPAPER" ]]; then
+  run cp -- "$DEFAULT_WALLPAPER" "$HOME/Pictures/Wallpapers/default.png"
+  ((DRY_RUN)) || note "seeded default wallpaper: $HOME/Pictures/Wallpapers/default.png"
+else
+  warn "shipped default wallpaper missing at $DEFAULT_WALLPAPER"
+fi
 
 if command -v xdg-settings >/dev/null 2>&1; then
   current_browser="$(xdg-settings get default-web-browser 2>/dev/null || true)"
