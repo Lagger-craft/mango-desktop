@@ -43,6 +43,90 @@ ShellRoot {
     }
   }
 
+  // Wallpaper picker state + IPC. The overlay reads these models and calls
+  // apply(); the mango bind toggles it via `quickshell ipc call wallpaper
+  // toggle`. Renderers and the per-monitor state map live in wallpaper-ctl.sh.
+  Scope {
+    id: picker
+    property bool active: false
+    property string activeMonitor: ""
+    property string selectedMonitor: ""
+    property string activeTab: "local"
+    property var localModel: []
+    property var weModel: []
+
+    readonly property string ctl:
+      Quickshell.env("HOME") + "/mango-desktop/mango/scripts/wallpaper-ctl.sh"
+
+    IpcHandler {
+      target: "wallpaper"
+      function toggle(): void { picker.toggle() }
+    }
+
+    // Ask the compositor which monitor is focused so the picker opens there.
+    Process {
+      id: monitorQuery
+      command: ["mmsg", "get", "all-monitors"]
+      stdout: SplitParser {
+        onRead: line => {
+          if (!line.trim().length)
+            return;
+          try {
+            const mons = JSON.parse(line).monitors || [];
+            for (const m of mons)
+              if (m.active) {
+                picker.activeMonitor = m.name;
+                picker.selectedMonitor = m.name;
+              }
+          } catch (e) {
+            // Malformed line: the next toggle re-queries.
+          }
+        }
+      }
+    }
+
+    Process {
+      id: listProcess
+      command: [picker.ctl, "list"]
+      stdout: SplitParser {
+        onRead: line => {
+          if (!line.trim().length)
+            return;
+          try {
+            const data = JSON.parse(line);
+            picker.localModel = data.local || [];
+            picker.weModel = data.we || [];
+          } catch (e) {
+            // Malformed line: models stay as they were.
+          }
+        }
+      }
+    }
+
+    Process {
+      id: applyProcess
+      command: []
+    }
+
+    function close() { active = false; }
+
+    function reload() {
+      monitorQuery.running = true;
+      listProcess.running = true;
+      active = true;
+    }
+
+    function toggle() {
+      if (active) { active = false; return; }
+      reload();
+    }
+
+    function apply(type, ref) {
+      applyProcess.command = [picker.ctl, "apply", picker.selectedMonitor, type, ref];
+      applyProcess.running = true;
+    }
+  }
+
   Variants {
     model: Quickshell.screens
 
@@ -108,6 +192,36 @@ ShellRoot {
               }
             }
           }
+        }
+      }
+    }
+  }
+
+  // Wallpaper picker overlay: one dimmed full-screen window per screen, shown
+  // only on the active monitor while the picker is toggled on.
+  Variants {
+    model: Quickshell.screens
+
+    delegate: Component {
+      PanelWindow {
+        id: pickerWindow
+        required property var modelData
+        screen: modelData
+        visible: picker.active && modelData.name === picker.activeMonitor
+        color: "transparent"
+        anchors {
+          top: true
+          bottom: true
+          left: true
+          right: true
+        }
+        exclusiveZone: 0
+        aboveWindows: true
+        focusable: true
+
+        WallpaperPicker {
+          pickerState: picker
+          anchors.fill: parent
         }
       }
     }
