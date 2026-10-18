@@ -138,12 +138,16 @@ apply_all() {
 
 # ---- subcommands -------------------------------------------------------
 
+# Emit both sources as ONE compact JSON line. The QuickShell picker reads this
+# through a line-splitting parser and JSON.parses each line, so it must be a
+# single line — pretty-printed multi-line JSON would be discarded line by line
+# and the picker would show nothing.
 cmd_list() {
   local out f
   out='{"local":[],"we":[]}'
 
   while IFS= read -r -d '' f; do
-    out=$(jq --arg ref "$f" --arg name "$(basename "$f")" \
+    out=$(jq -c --arg ref "$f" --arg name "$(basename "$f")" \
       '.local += [{ref:$ref, name:$name}]' <<< "$out")
   done < <(find "$wallpaper_dir" -maxdepth 1 -type f \
     \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) \
@@ -163,7 +167,7 @@ cmd_list() {
         done
       fi
       ptype=$(jq -r '.type // "unknown"' "$d/project.json" 2>/dev/null || echo unknown)
-      out=$(jq --arg ref "$id" --arg title "${title:-$id}" \
+      out=$(jq -c --arg ref "$id" --arg title "${title:-$id}" \
         --arg preview "$([[ -n "$preview" ]] && printf '%s/%s' "$d" "$preview")" \
         --arg type "$ptype" \
         '.we += [{ref:$ref, title:$title, preview:$preview, type:$type}]' <<< "$out")
