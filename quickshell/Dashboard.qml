@@ -1,0 +1,802 @@
+import QtQuick
+import QtQuick.Controls
+import Quickshell
+import Quickshell.Io
+import Quickshell.Services.Mpris
+
+// Full-screen dashboard overlay, mirroring the WallpaperPicker structure
+// (dim backdrop + centered card). All state lives in the shell's `dashboard`
+// Scope, passed by reference as dashboardState: `active` says when to show,
+// `close()` dismisses. The notifications card consumes the shared Dunst
+// singleton — dunst stays the sole notification daemon (README). Nothing
+// here touches the network: artwork is local-file-only and the system card
+// reads procfs.
+Item {
+  id: dashboard
+  required property var dashboardState // Scope: property bool active, function close()
+  focus: true
+  anchors.fill: parent
+
+  readonly property color surface: "#171a17"
+  readonly property color accent: "#9bd45a"
+  readonly property color amber: "#e0a044"
+  readonly property color red: "#d94b43"
+  readonly property color textPrimary: "#e5e8dc"
+  readonly property color textSecondary: "#c8d2c0"
+  readonly property color textDim: "#5a6055"
+  readonly property color panel: "#1b1f1a"
+  readonly property color edge: "#4a5a41"
+  readonly property string mono: "JetBrainsMono Nerd Font Mono"
+
+  Keys.onEscapePressed: dashboardState.close()
+
+  // ---- system stats (procfs; ~2 s refresh while open) --------------------
+  property real cpuPct: 0
+  property double lastBusy: -1
+  property double lastTotal: -1
+  property real memUsedGiB: 0
+  property real memTotalGiB: 0
+  property string uptimeText: "…"
+  property string kernelText: "…"
+
+  // First /proc/stat line: cpu user nice system idle iowait irq softirq
+  // steal guest guest_nice. guest is already counted inside user, so the
+  // total stops at steal. CPU% comes from busy/total deltas between reads.
+  function parseCpu(text) {
+    const parts = (text || "").trim().split(/\s+/);
+    if (parts.length < 6 || parts[0] !== "cpu")
+      return;
+    let total = 0;
+    for (let i = 1; i <= 8 && i < parts.length; i++)
+      total += Number(parts[i]) || 0;
+    const idleAll = (Number(parts[4]) || 0) + (Number(parts[5]) || 0); // idle + iowait
+    const busy = total - idleAll;
+    if (dashboard.lastTotal >= 0 && total > dashboard.lastTotal) {
+      const pct = 100 * (busy - dashboard.lastBusy) / (total - dashboard.lastTotal);
+      dashboard.cpuPct = Math.max(0, Math.min(100, pct));
+    }
+    dashboard.lastBusy = busy;
+    dashboard.lastTotal = total;
+  }
+
+  function parseMem(text) {
+    const total = /MemTotal:\s+(\d+)/.exec(text || "");
+    const avail = /MemAvailable:\s+(\d+)/.exec(text || "");
+    if (!total || !avail)
+      return;
+    dashboard.memTotalGiB = Number(total[1]) / 1048576;
+    dashboard.memUsedGiB = (Number(total[1]) - Number(avail[1])) / 1048576;
+  }
+
+  function parseUptime(text) {
+    const s = parseFloat((text || "").trim().split(/\s+/)[0]);
+    if (!isFinite(s))
+      return;
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    dashboard.uptimeText = d > 0 ? d + "d " + h + "h"
+                         : h > 0 ? h + "h " + m + "m"
+                                 : m + "m";
+  }
+
+  FileView {
+    id: statFile
+    path: "/proc/stat"
+    printErrors: false
+    onTextChanged: dashboard.parseCpu(this.text())
+  }
+  FileView {
+    id: memFile
+    path: "/proc/meminfo"
+    printErrors: false
+    onTextChanged: dashboard.parseMem(this.text())
+  }
+  FileView {
+    id: uptimeFile
+    path: "/proc/uptime"
+    printErrors: false
+    onTextChanged: dashboard.parseUptime(this.text())
+  }
+  FileView { // kernel never changes while running; read once
+    path: "/proc/sys/kernel/osrelease"
+    printErrors: false
+    onTextChanged: dashboard.kernelText = this.text().trim()
+  }
+
+  Timer {
+    interval: 2000
+    running: dashboard.dashboardState.active
+    repeat: true
+    onTriggered: {
+      statFile.reload(); // fresh busy/total delta for the CPU %
+      memFile.reload();
+      uptimeFile.reload();
+      dunstRefresh.restart(); // dunst pool sizes, shared with the bell
+    }
+  }
+
+  // Refresh dunst counts/history when the dashboard opens (the FileViews
+  // auto-load at creation, so only dunst needs the explicit kick).
+  Timer {
+    id: dunstRefresh
+    onTriggered: { Dunst.refreshCounts(); Dunst.refreshHistory(); }
+  }
+  Connections {
+    target: dashboard.dashboardState
+    function onActiveChanged() {
+      if (dashboard.dashboardState.active)
+        dunstRefresh.restart();
+    }
+  }
+
+  // ---- MPRIS --------------------------------------------------------------
+  // Prefer the player that is actually playing; else any known player.
+  readonly property var player: {
+    const list = Mpris.players.values;
+    for (const p of list)
+      if (p.playbackState === MprisPlaybackState.Playing)
+        return p;
+    return list.length > 0 ? list[0] : null;
+  }
+  // Artwork: local file URLs only. Players often advertise http(s) cover
+  // URLs; fetching those would be a network request (S4 forbids it), so
+  // anything that is not file:// renders the placeholder glyph instead.
+  readonly property string artSource: {
+    const url = player ? String(player.trackArtUrl) : "";
+    return url.indexOf("file://") === 0 ? url : "";
+  }
+
+  // ---- session actions (same commands as mango power-menu.sh) ------------
+  Process { id: logoutProc; command: ["mango", "-s", "quit"] }
+  Process { id: rebootProc; command: ["systemctl", "reboot"] }
+  Process { id: poweroffProc; command: ["systemctl", "poweroff"] }
+
+  // ---- inline components -------------------------------------------------
+  component Bar: Rectangle {
+    id: bar
+    property real value: 0 // 0..1
+    readonly property color fillColor: value > 0.90 ? dashboard.red
+                                       : value > 0.75 ? dashboard.amber
+                                                      : dashboard.accent
+    width: parent.width
+    height: 6
+    radius: 3
+    color: "#282d26"
+
+    Rectangle {
+      width: parent.width * Math.max(0, Math.min(1, bar.value))
+      height: parent.height
+      radius: 3
+      color: bar.fillColor
+
+      Behavior on width {
+        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+      }
+    }
+  }
+
+  component Card: Rectangle {
+    id: card
+    required property string title
+    property string meta: ""
+    default property alias content: cardBody.data
+
+    color: dashboard.panel
+    radius: 6
+    border.width: 1
+    border.color: dashboard.edge
+
+    Text {
+      id: cardTitle
+      anchors.left: parent.left
+      anchors.top: parent.top
+      anchors.leftMargin: 10
+      anchors.topMargin: 10
+      text: card.title
+      color: dashboard.accent
+      font.family: dashboard.mono
+      font.bold: true
+      font.pixelSize: 12
+      font.letterSpacing: 1
+    }
+    Text {
+      anchors.right: parent.right
+      anchors.baseline: cardTitle.baseline
+      anchors.rightMargin: 10
+      text: card.meta
+      color: dashboard.textDim
+      font.family: dashboard.mono
+      font.pixelSize: 10
+    }
+    Rectangle {
+      id: cardDivider
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: cardTitle.bottom
+      anchors.topMargin: 8
+      height: 1
+      color: "#485044"
+    }
+    Column {
+      id: cardBody
+      anchors.top: cardDivider.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      anchors.margins: 10
+      spacing: 6
+    }
+  }
+
+  component ActionButton: Rectangle {
+    id: actionBtn
+    required property string label
+    required property var action
+    width: actionLabel.implicitWidth + 24
+    height: 22
+    radius: 4
+    color: actionMouse.containsMouse ? "#2a3126" : "#20231e"
+    border.width: 1
+    border.color: actionMouse.containsMouse ? dashboard.accent : dashboard.edge
+    Behavior on border.color { ColorAnimation { duration: 120 } }
+
+    Text {
+      id: actionLabel
+      anchors.centerIn: parent
+      text: actionBtn.label
+      color: actionMouse.containsMouse ? dashboard.textPrimary : dashboard.textSecondary
+      font.family: dashboard.mono
+      font.pixelSize: 10
+      font.bold: true
+      font.letterSpacing: 0.5
+      Behavior on color { ColorAnimation { duration: 120 } }
+    }
+
+    MouseArea {
+      id: actionMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: actionBtn.action()
+    }
+  }
+
+  component SessionButton: Rectangle {
+    id: sessBtn
+    required property string label
+    required property string command
+    property string tone: "normal" // "normal" | "amber" | "red"
+    required property var action
+
+    readonly property color toneColor: tone === "red" ? dashboard.red
+                                       : tone === "amber" ? dashboard.amber
+                                                          : dashboard.edge
+    // Danger tones keep a permanent (dimmed) amber/red border, brightening
+    // on hover; the neutral action blends in until hovered.
+    readonly property color baseTone: tone === "normal" ? dashboard.edge
+                                      : Qt.rgba(toneColor.r, toneColor.g, toneColor.b, 0.45)
+    width: parent.width
+    height: 42
+    radius: 6
+    color: sessMouse.containsMouse ? "#2a3126" : "#20231e"
+    border.width: 1
+    border.color: sessMouse.containsMouse ? toneColor : baseTone
+    opacity: enabled ? 1 : 0.4
+    Behavior on border.color { ColorAnimation { duration: 120 } }
+
+    Text {
+      anchors.left: parent.left
+      anchors.leftMargin: 12
+      anchors.verticalCenter: parent.verticalCenter
+      text: sessBtn.label
+      color: sessMouse.containsMouse || sessBtn.tone !== "normal"
+           ? sessBtn.toneColor : dashboard.textPrimary
+      font.family: dashboard.mono
+      font.bold: true
+      font.pixelSize: 12
+      font.letterSpacing: 1
+      Behavior on color { ColorAnimation { duration: 120 } }
+    }
+    Text {
+      anchors.right: parent.right
+      anchors.rightMargin: 12
+      anchors.verticalCenter: parent.verticalCenter
+      text: sessBtn.command
+      color: dashboard.textDim
+      font.family: dashboard.mono
+      font.pixelSize: 10
+    }
+
+    MouseArea {
+      id: sessMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: sessBtn.action()
+    }
+  }
+
+  component TransportButton: Rectangle {
+    id: transportBtn
+    required property string glyph
+    required property var action
+    width: 36
+    height: 30
+    radius: 4
+    color: transportMouse.containsMouse ? "#2a3126" : "#20231e"
+    border.width: 1
+    border.color: transportMouse.containsMouse ? dashboard.accent : dashboard.edge
+    opacity: enabled ? 1 : 0.4
+    Behavior on border.color { ColorAnimation { duration: 120 } }
+
+    Text {
+      anchors.centerIn: parent
+      text: transportBtn.glyph
+      color: transportMouse.containsMouse ? dashboard.accent : dashboard.textSecondary
+      font.family: dashboard.mono
+      font.pixelSize: 14
+    }
+    MouseArea {
+      id: transportMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: transportBtn.action()
+    }
+  }
+
+  // ---- overlay ------------------------------------------------------------
+  // Dim backdrop; click anywhere to dismiss.
+  Rectangle {
+    anchors.fill: parent
+    color: "#d9141714"
+    MouseArea {
+      anchors.fill: parent
+      onClicked: dashboard.dashboardState.close()
+    }
+  }
+
+  // ---- card ---------------------------------------------------------------
+  Rectangle {
+    anchors.centerIn: parent
+    width: Math.min(900, parent.width - 60)
+    height: Math.min(560, parent.height - 60)
+    color: dashboard.surface
+    border.color: dashboard.accent
+    border.width: 2
+    radius: 10
+
+    // Subtle green top edge, matching the bar.
+    Rectangle {
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 2
+      radius: 10
+      color: dashboard.accent
+    }
+
+    // Header: title on the left, close on the right.
+    Item {
+      id: header
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.margins: 16
+      height: 26
+
+      Text {
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        text: "☢  DASHBOARD"
+        color: dashboard.accent
+        font.family: dashboard.mono
+        font.bold: true
+        font.pixelSize: 15
+      }
+      Rectangle {
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        width: closeLabel.implicitWidth + 20
+        height: 24
+        radius: 4
+        color: closeMouse.containsMouse ? "#402d29" : "#222722"
+        border.color: dashboard.edge
+        Text {
+          id: closeLabel
+          anchors.centerIn: parent
+          text: "✕ CLOSE"
+          color: closeMouse.containsMouse ? "#ec8064" : dashboard.textSecondary
+          font.family: dashboard.mono
+          font.pixelSize: 11
+        }
+        MouseArea {
+          id: closeMouse
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: dashboard.dashboardState.close()
+        }
+      }
+    }
+
+    // 2x2 card grid, plain geometry like the rest of the shell (no layouts).
+    Item {
+      id: cardsArea
+      anchors.top: header.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      anchors.topMargin: 12
+      anchors.leftMargin: 16
+      anchors.rightMargin: 16
+      anchors.bottomMargin: 16
+
+      // -- Notifications: dunst history + live counts (Dunst singleton only).
+      Card {
+        title: "NOTIFICATIONS"
+        meta: Dunst.historyCount + " history"
+            + (Dunst.pending > 0 ? "  ·  " + Dunst.pending + " active" : "")
+        x: 0
+        y: 0
+        width: (parent.width - 12) / 2
+        height: (parent.height - 12) / 2
+
+        Row {
+          spacing: 6
+
+          ActionButton {
+            label: "CLEAR HISTORY"
+            action: () => Dunst.clearHistory()
+          }
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "click an entry to re-show it"
+            color: dashboard.textDim
+            font.family: dashboard.mono
+            font.pixelSize: 9
+          }
+        }
+
+        Rectangle {
+          width: parent.width
+          height: 1
+          color: "#485044"
+        }
+
+        Flickable {
+          width: parent.width
+          height: Math.max(40, parent.height - y)
+          contentWidth: width
+          contentHeight: notifColumn.implicitHeight
+          boundsBehavior: Flickable.StopAtBounds
+          clip: true
+
+          Column {
+            id: notifColumn
+            width: parent.width
+            spacing: 4
+
+            Text {
+              visible: Dunst.history.length === 0
+              width: notifColumn.width
+              text: "No notifications in history"
+              color: dashboard.textDim
+              font.family: dashboard.mono
+              font.pixelSize: 10
+              horizontalAlignment: Text.AlignHCenter
+              topPadding: 8
+            }
+
+            Repeater {
+              model: Dunst.history
+
+              delegate: Rectangle {
+                id: entry
+                required property var modelData
+                width: notifColumn.width
+                height: entryCol.implicitHeight + 8
+                radius: 6
+                color: entryMouse.containsMouse ? "#2a3126" : "transparent"
+                Behavior on color { ColorAnimation { duration: 120 } }
+
+                Column {
+                  id: entryCol
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.top: parent.top
+                  anchors.leftMargin: 8
+                  anchors.rightMargin: 8
+                  anchors.topMargin: 4
+                  spacing: 1
+
+                  Row {
+                    width: entryCol.width
+                    spacing: 6
+
+                    Rectangle {
+                      width: 6
+                      height: 6
+                      radius: 3
+                      anchors.verticalCenter: parent.verticalCenter
+                      color: Dunst.urgencyColor(entry.modelData.urgency)
+                    }
+
+                    Text {
+                      width: parent.width - 12
+                      text: entry.modelData.summary
+                      color: entry.modelData.urgency === "CRITICAL" ? dashboard.red : dashboard.textPrimary
+                      font.family: dashboard.mono
+                      font.bold: true
+                      font.pixelSize: 10
+                      elide: Text.ElideRight
+                      maximumLineCount: 1
+                    }
+                  }
+
+                  Text {
+                    width: entryCol.width
+                    text: entry.modelData.appname
+                        + (entry.modelData.body ? "  ·  " + entry.modelData.body : "")
+                    color: dashboard.textSecondary
+                    font.family: dashboard.mono
+                    font.pixelSize: 9
+                    elide: Text.ElideRight
+                    maximumLineCount: 2
+                  }
+                }
+
+                MouseArea {
+                  id: entryMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: Dunst.reopenEntry(entry.modelData.id)
+                }
+
+                ToolTip.visible: entryMouse.containsMouse
+                ToolTip.text: "Re-show this notification"
+                ToolTip.delay: 500
+              }
+            }
+          }
+        }
+      }
+
+      // -- System: CPU/RAM/uptime/kernel straight from procfs.
+      Card {
+        title: "SYSTEM"
+        meta: dashboard.uptimeText + " up"
+        x: (parent.width + 12) / 2
+        y: 0
+        width: (parent.width - 12) / 2
+        height: (parent.height - 12) / 2
+
+        Item {
+          width: parent.width
+          height: 16
+          Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: "CPU"
+            color: dashboard.textSecondary
+            font.family: dashboard.mono
+            font.pixelSize: 11
+          }
+          Text {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: Math.round(dashboard.cpuPct) + "%"
+            color: dashboard.textPrimary
+            font.family: dashboard.mono
+            font.bold: true
+            font.pixelSize: 11
+          }
+        }
+        Bar { value: dashboard.cpuPct / 100 }
+
+        Item {
+          width: parent.width
+          height: 16
+          Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: "RAM"
+            color: dashboard.textSecondary
+            font.family: dashboard.mono
+            font.pixelSize: 11
+          }
+          Text {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: dashboard.memUsedGiB.toFixed(1) + " / "
+                + dashboard.memTotalGiB.toFixed(1) + " GiB"
+            color: dashboard.textPrimary
+            font.family: dashboard.mono
+            font.bold: true
+            font.pixelSize: 11
+          }
+        }
+        Bar { value: dashboard.memTotalGiB > 0 ? dashboard.memUsedGiB / dashboard.memTotalGiB : 0 }
+
+        Item {
+          width: parent.width
+          height: 16
+          Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: "UP"
+            color: dashboard.textSecondary
+            font.family: dashboard.mono
+            font.pixelSize: 11
+          }
+          Text {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: dashboard.uptimeText
+            color: dashboard.textPrimary
+            font.family: dashboard.mono
+            font.bold: true
+            font.pixelSize: 11
+          }
+        }
+
+        Text {
+          width: parent.width
+          text: "_kernel  " + dashboard.kernelText
+          color: dashboard.textDim
+          font.family: dashboard.mono
+          font.pixelSize: 10
+          elide: Text.ElideRight
+        }
+      }
+
+      // -- Music: active MPRIS player, local artwork only.
+      Card {
+        title: "MUSIC"
+        meta: dashboard.player ? dashboard.player.identity : ""
+        x: 0
+        y: (parent.height + 12) / 2
+        width: (parent.width - 12) / 2
+        height: (parent.height - 12) / 2
+
+        Item {
+          width: parent.width
+          height: Math.max(40, parent.height - y)
+
+          Text {
+            anchors.centerIn: parent
+            visible: dashboard.player === null
+            text: "NO PLAYER"
+            color: dashboard.textDim
+            font.family: dashboard.mono
+            font.bold: true
+            font.pixelSize: 14
+            font.letterSpacing: 2
+          }
+
+          Row {
+            anchors.fill: parent
+            visible: dashboard.player !== null
+            spacing: 12
+
+            Rectangle {
+              anchors.verticalCenter: parent.verticalCenter
+              width: 88
+              height: 88
+              radius: 6
+              color: "#12150f"
+              border.width: 1
+              border.color: dashboard.edge
+
+              Image {
+                anchors.fill: parent
+                anchors.margins: 2
+                visible: dashboard.artSource !== ""
+                source: dashboard.artSource
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+              }
+              Text { // placeholder when there is no local artwork
+                anchors.centerIn: parent
+                visible: dashboard.artSource === ""
+                text: "󰀁"
+                color: dashboard.textDim
+                font.family: dashboard.mono
+                font.pixelSize: 30
+              }
+            }
+
+            Column {
+              anchors.verticalCenter: parent.verticalCenter
+              width: parent.width - 100
+              spacing: 4
+
+              Text {
+                width: parent.width
+                text: (dashboard.player && dashboard.player.trackTitle) || "Unknown track"
+                color: dashboard.textPrimary
+                font.family: dashboard.mono
+                font.bold: true
+                font.pixelSize: 13
+                elide: Text.ElideRight
+                maximumLineCount: 1
+              }
+              Text {
+                width: parent.width
+                text: (dashboard.player && dashboard.player.trackArtist) || "Unknown artist"
+                color: dashboard.textSecondary
+                font.family: dashboard.mono
+                font.pixelSize: 11
+                elide: Text.ElideRight
+                maximumLineCount: 1
+              }
+
+              Row {
+                spacing: 8
+
+                TransportButton {
+                  glyph: "󰒮" // md-skip-previous
+                  enabled: dashboard.player ? dashboard.player.canGoPrevious : false
+                  action: () => dashboard.player.previous()
+                }
+                TransportButton {
+                  glyph: (dashboard.player && dashboard.player.isPlaying) ? "󰏤" : "󰐊" // pause / play
+                  enabled: dashboard.player ? dashboard.player.canTogglePlaying : false
+                  action: () => dashboard.player.togglePlaying()
+                }
+                TransportButton {
+                  glyph: "󰒭" // md-skip-next
+                  enabled: dashboard.player ? dashboard.player.canGoNext : false
+                  action: () => dashboard.player.next()
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // -- Session: the same commands as mango power-menu.sh.
+      Card {
+        title: "SESSION"
+        meta: "power"
+        x: (parent.width + 12) / 2
+        y: (parent.height + 12) / 2
+        width: (parent.width - 12) / 2
+        height: (parent.height - 12) / 2
+
+        SessionButton {
+          label: "LOGOUT"
+          command: "mango -s quit"
+          action: () => logoutProc.running = true
+        }
+        SessionButton {
+          label: "REBOOT"
+          command: "systemctl reboot"
+          tone: "amber"
+          action: () => rebootProc.running = true
+        }
+        SessionButton {
+          label: "POWEROFF"
+          command: "systemctl poweroff"
+          tone: "red"
+          action: () => poweroffProc.running = true
+        }
+      }
+    }
+
+    // Footer hint.
+    Text {
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      anchors.bottomMargin: 4
+      horizontalAlignment: Text.AlignHCenter
+      color: dashboard.textDim
+      font.family: dashboard.mono
+      font.pixelSize: 9
+      text: "ESC or backdrop to close"
+    }
+  }
+}
