@@ -3,22 +3,19 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 
-Rectangle {
+// Icon-only power control: the frame and the "POWER" label are gone, so
+// the island just carries the glyph with hover feedback and tooltip.
+Item {
   id: powerButton
-  width: 83
-  height: 29
-  radius: 5
-  color: powerMouse.containsMouse ? "#402d29" : "#282321"
-  scale: powerMouse.containsMouse ? 1.035 : 1
+  width: 26
+  height: 30
 
-  Behavior on color { ColorAnimation { duration: 140 } }
-  Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-
-  Row {
+  Text {
     anchors.centerIn: parent
-    spacing: 6
-    Text { text: "⏻"; color: "#ec8064"; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
-    Text { text: "POWER"; color: "#e4dfcf"; font.pixelSize: 10; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+    text: "⏻"
+    color: powerMouse.containsMouse ? "#ec8064" : "#c8d2c0"
+    font.pixelSize: 17
+    Behavior on color { ColorAnimation { duration: 140 } }
   }
 
   MouseArea {
