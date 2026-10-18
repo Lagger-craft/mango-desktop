@@ -19,6 +19,7 @@ readonly state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/mango"
 readonly state_file="$state_dir/wallpapers.json"
 readonly pid_dir="$state_dir/wallpaper-pids"
 readonly lwe_pid="$pid_dir/lwe.pid"
+readonly render_log="$state_dir/renderer.log"
 
 die() { printf 'wallpaper-ctl: %s\n' "$*" >&2; exit 1; }
 
@@ -117,9 +118,14 @@ apply_all() {
   done < <(jq -r 'to_entries[] | [.key, .value.type, .value.ref] | @tsv' \
     <<< "$state" 2>/dev/null)
 
-  # Workshop: one process covers every Workshop monitor.
+  # Workshop: one process covers every Workshop monitor. Each renderer gets its
+  # own stdin/stdout/stderr (a log file, never the caller's pipes): a
+  # backgrounded renderer that inherits the caller's stdout keeps that pipe
+  # open, which hangs a `cmd | ...` caller and stalls QuickShell's apply Process
+  # (it waits for a stream EOF only the forever-running renderer can close).
   if ((${#we_args[@]})); then
-    linux-wallpaperengine "${we_args[@]}" --fullscreen-pause-only-active &
+    linux-wallpaperengine "${we_args[@]}" --fullscreen-pause-only-active \
+      </dev/null >>"$render_log" 2>&1 &
     printf '%s\n' "$!" > "$lwe_pid"
   fi
 
@@ -131,7 +137,8 @@ apply_all() {
     ref=${line#*$'\t'}
     mpvpaper -p -a FULL \
       -o 'no-audio loop image-display-duration=inf panscan=1' \
-      "$mon" "$ref" &
+      "$mon" "$ref" \
+      </dev/null >>"$render_log" 2>&1 &
     printf '%s\n' "$!" > "$pid_dir/mpv-$mon.pid"
   done
 }
