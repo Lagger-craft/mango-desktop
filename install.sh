@@ -11,17 +11,18 @@ set -euo pipefail
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 # Shipped fallback background, seeded on first install so a fresh machine
-# renders a desktop instead of a blank screen (see wallpaper-selector.sh).
+# renders a desktop instead of a blank screen (see wallpaper-ctl.sh).
 readonly DEFAULT_WALLPAPER="$REPO_DIR/mango/wallpapers/default.png"
 
 # Official-repo packages used by this profile.
 REPO_PKGS=(
   mangowm      # compositor
-  quickshell   # top panel
+  quickshell   # top panel + wallpaper picker
   foot         # terminal (Super+Return)
-  wofi         # launcher, clipboard and wallpaper menus
+  wofi         # launcher, clipboard and power menus
   cliphist     # bounded clipboard history
   wl-clipboard # wl-copy / wl-paste
+  jq           # wallpaper-ctl JSON state and listing
   grim         # screenshots
   slurp        # region selection
   dunst        # notification daemon
@@ -32,7 +33,7 @@ REPO_PKGS=(
 )
 
 # AUR-only packages: no official-repo package provides these.
-AUR_PKGS=(mpvpaper)
+AUR_PKGS=(mpvpaper linux-wallpaperengine-git)
 
 DRY_RUN=0
 MODE=install
@@ -173,7 +174,7 @@ run mkdir -p "$HOME/Pictures/Wallpapers"
 
 # Seed the shipped default only when the user has no background of their own;
 # an existing image is never overwritten. Without at least one image,
-# wallpaper-selector.sh --restore has nothing to restore and the desktop comes
+# wallpaper-ctl.sh restore has nothing to fall back on and the desktop comes
 # up blank with no diagnostic.
 if wallpapers_present "$HOME/Pictures/Wallpapers"; then
   note "wallpapers already present; nothing seeded"

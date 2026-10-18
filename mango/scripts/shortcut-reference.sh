@@ -9,7 +9,7 @@ printf '%s\n' \
   'Super+Shift+W — Chromium fallback' \
   'Super+Tab — Mango overview' \
   'Super+Space — Application launcher' \
-  'Super+Alt+W — Wallpaper selector' \
+  'Super+Alt+W — Wallpaper picker' \
   'Super+V — Clipboard history (press again to close)' \
   'Super+/ — Shortcut reference' \
   'Super+H/J/K/L — Focus left/down/up/right' \

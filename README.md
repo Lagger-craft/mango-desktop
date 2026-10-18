@@ -3,10 +3,11 @@
 This repository is an optional personal MangoWM setup. It does not replace or
 remove Niri and leaves shared dotfiles untouched. Package installation is
 opt-in through the included `install.sh` (see `## Install`). It uses local
-images in `~/Pictures/Wallpapers` and the MangoWM, Quickshell, Foot, Wofi,
-mpvpaper, Firefox, and Chromium stack described below. A default background is
-shipped at `mango/wallpapers/default.png` so that a fresh install always
-renders a desktop rather than a blank screen.
+images in `~/Pictures/Wallpapers` and Steam Workshop Wallpaper Engine
+backgrounds, driven by the MangoWM, Quickshell, Foot, Wofi, mpvpaper,
+linux-wallpaperengine, Firefox, and Chromium stack described below. A default
+background is shipped at `mango/wallpapers/default.png` so that a fresh install
+always renders a desktop rather than a blank screen.
 
 ## Try it
 
@@ -16,8 +17,8 @@ From a TTY or another session, start Mango directly with this config:
 mango -c "$HOME/mango-desktop/mango/config.conf"
 ```
 
-No config symlink or copy is needed. Mango starts Quickshell and restores the
-last selected wallpaper; when no valid selection exists yet (a fresh install,
+No config symlink or copy is needed. Mango starts Quickshell and restores each
+monitor's last wallpaper; when no valid selection exists yet (a fresh install,
 or the selected file was removed since) it falls back to the shipped default
 background instead of starting blank. Quickshell makes a reserved top panel for
 every connected screen. The panel uses a left zone/tag hint, centered date and time,
@@ -41,10 +42,11 @@ cd "$HOME/mango-desktop"
 ```
 
 Dependency policy: official-repo packages are installed with `pacman`
-(`mangowm`, `quickshell`, `foot`, `wofi`, `cliphist`, `wl-clipboard`, `grim`,
-`slurp`, `dunst`, `firefox`, `chromium`, `xdg-utils`, `fastfetch`); AUR-only packages go
-through the first available helper among `yay` and `paru` (`mpvpaper`). Set
-`AUR_HELPER=<helper>` to force one. The installer is idempotent and
+(`mangowm`, `quickshell`, `foot`, `wofi`, `cliphist`, `wl-clipboard`, `jq`,
+`grim`, `slurp`, `dunst`, `firefox`, `chromium`, `xdg-utils`, `fastfetch`); AUR-only packages go
+through the first available helper among `yay` and `paru` (`mpvpaper`,
+`linux-wallpaperengine-git`). Set `AUR_HELPER=<helper>` to force one. The
+installer is idempotent and
 non-destructive: it never overwrites an existing config path (an occupied
 `~/.config/mango`, `~/.config/dunst/dunstrc`, `~/.config/vesktop`,
 `~/.config/fastfetch`, or
@@ -79,7 +81,7 @@ which performs the `wpctl` action and writes the state for the QuickShell
 popup.
 | Super+Tab | Mango overview across tags |
 | Super+Space | Wofi application launcher |
-| Super+Alt+W | Choose and persist a local wallpaper |
+| Super+Alt+W | Open the wallpaper picker (local + Steam Workshop) |
 | Super+V | Choose an item from local clipboard history (press again to close) |
 | Super+/ | Open the static keyboard shortcut reference |
 | Super+H/J/K/L | Focus left/down/up/right |
@@ -99,8 +101,9 @@ popup.
 | Super+Shift+E | Log out of Mango |
 
 The panel includes a clock, system tray (left-click activates, middle-click
-secondary activates, right-click opens the item's menu), and power menu. Choose
-wallpapers with `Super+Alt+W`; there is no redundant panel button. The Wofi
+secondary activates, right-click opens the item's menu), and power menu. The
+`Super+Alt+W` wallpaper picker is a QuickShell overlay, not a Wofi menu (see
+`## Wallpapers`); there is no redundant panel button. The Wofi
 drun launcher displays desktop-entry icons. Controls have lightweight hover
 easing and tooltips. The power menu offers logout, reboot, and poweroff. Mango
 window and layer transitions use short zoom/fade animations (open zoom, close
@@ -132,10 +135,32 @@ The project's scripts and configuration perform no network requests and fetch
 no remote assets. This guarantee applies only to this project's code; browsers
 and other desktop applications may independently use the network.
 
-The selected wallpaper is rendered at each output's own size. Pan-and-scan
-preserves the image aspect ratio and fills each screen by cropping its edges;
-portrait displays crop more of a landscape image. A fullscreen window pauses the
-shared wallpaper renderer on all outputs.
+## Wallpapers
+
+`Super+Alt+W` opens a QuickShell wallpaper picker: a dimmed overlay with a
+target-monitor row, `LOCALES` / `WALLPAPER ENGINE` source tabs, and a preview
+grid. Pick a monitor, switch source, and click a preview to apply it to that
+monitor; each monitor keeps its own wallpaper. `Esc`, the backdrop, or the
+close button dismisses it.
+
+- **Locales** are images in `~/Pictures/Wallpapers` (png/jpg/jpeg/webp), each
+  rendered by its own `mpvpaper` instance.
+- **Wallpaper Engine** backgrounds are your Steam Workshop subscriptions under
+  `steamapps/workshop/content/431960/<id>`, rendered by a single
+  `linux-wallpaperengine` process. This requires Wallpaper Engine installed via
+  Steam (with Proton) so the base assets are present, plus
+  `linux-wallpaperengine` from the AUR.
+
+While any window is fullscreen (a game), the renderers pause automatically so
+they stop consuming resources: Workshop backgrounds via
+`--fullscreen-pause-only-active`, and local ones via `mpvpaper -p -a FULL`.
+Local images are rendered at each output's own size; pan-and-scan preserves the
+aspect ratio and fills each screen by cropping its edges, so portrait displays
+crop more of a landscape image.
+
+The picker is driven by `mango/scripts/wallpaper-ctl.sh` (`list`, `apply`,
+`restore`, `stop`); the per-monitor state map and renderer PIDs live under
+`${XDG_STATE_HOME:-~/.local/state}/mango`.
 
 `install.sh` copies `mango/wallpapers/default.png` into `~/Pictures/Wallpapers`
 only when that directory holds no image yet, so an existing background is never
@@ -146,15 +171,15 @@ remove it.
 ## Rollback
 
 Log out with Super+Shift+E, or exit the compositor normally. Stop only the
-wallpaper process managed by this profile with:
+wallpaper renderers managed by this profile with:
 
 ```sh
-"$HOME/mango-desktop/mango/scripts/wallpaper-selector.sh" --stop
+"$HOME/mango-desktop/mango/scripts/wallpaper-ctl.sh" stop
 ```
 
-The selection and PID are stored under `${XDG_STATE_HOME:-~/.local/state}/mango`;
-remove that `mango` state directory only if you also want to forget the chosen
-image. `./install.sh --uninstall` deliberately leaves `~/Pictures/Wallpapers`
+The per-monitor state map and renderer PIDs are stored under
+`${XDG_STATE_HOME:-~/.local/state}/mango`; remove that `mango` state directory
+only if you also want to forget the chosen wallpapers. `./install.sh --uninstall` deliberately leaves `~/Pictures/Wallpapers`
 alone, so a seeded `default.png` stays behind until you delete it yourself.
 This profile links `~/.config/mango`, `~/.config/dunst/dunstrc`,
 `~/.config/vesktop`, and `~/.zshrc`, and sets Firefox as the XDG default;
@@ -166,7 +191,7 @@ apply only while this profile is running.
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
-bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-selector.sh ./mango/scripts/volume-osd.sh
+bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh
 ./install.sh --dry-run
 git diff --check
 ```
