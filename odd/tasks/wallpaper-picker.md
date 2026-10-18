@@ -154,6 +154,19 @@ strategy: stacked-to-main, one work-unit commit per unit. Test runner:
   targets the right instance. Verified: selectorless call exit 255; with `-p`
   exit 0, and the exact bind command toggles the overlay (quickshell layers
   3→4→3). Mango reloaded so the shortcut is live.
+- L12 (2026-10-17, bugfix): clicking a preview did nothing for either source.
+  Root cause: `apply_all` backgrounded `linux-wallpaperengine`/`mpvpaper` while
+  they inherited the caller's stdout/stderr. A forever-running renderer keeps
+  that pipe open, so QuickShell's apply Process never saw stream EOF and
+  stalled (and `wallpaper-ctl.sh apply … | head` hung to a 120 s timeout) — the
+  apply never completed. Fix: redirect each renderer's stdio to
+  `state/renderer.log` instead of the caller's pipes. Verified after fix:
+  `apply … | head` returns in 1 s, lwe survives (`pgrep -f`; note `/proc/comm`
+  truncates to `linux-wallpaper`, so plain `pgrep linux-wallpaperengine` always
+  misses it — use `-f`) and maps a `bottom` layer on the target output.
+  Committed as `037f172`. The earlier `list`-empty bug (jq multi-line JSON vs
+  SplitParser) was `cbafda3`. Test artifacts (stray mpvpaper/lwe, state)
+  removed; the user's original mpvpaper (3231) left intact.
 - Risk: item 3 (contracts others consume) — the wallpaper flow moved from the
   Wofi script to `wallpaper-ctl.sh` + a QuickShell overlay, and
   `Super+Alt+W`/`exec_once` now target the new path; the old script was removed.
