@@ -58,10 +58,11 @@ strategy: stacked-to-main, one work-unit commit per unit. Test runner:
 - T1 (S1-S4, done `db3275a`, inline): write `mango/scripts/wallpaper-ctl.sh`
   (list/apply/restore/stop + per-monitor JSON state + dual renderer). Route:
   inline (sequential, full context, no parallel-unit reason).
-- T2 (S5-S6, inline): write `quickshell/WallpaperPicker.qml` and wire the
-  `IpcHandler` + active-monitor overlay into `quickshell/shell.qml`.
+- T2 (S5-S6, done `42a83fc`, inline): write `quickshell/WallpaperPicker.qml`
+  and wire the `IpcHandler` + active-monitor overlay into `quickshell/shell.qml`.
   Route: inline (sequential; depends on T1's `list`/`apply` contract).
-- T3 (S7, inline): config.conf, install.sh, README, shortcut-reference updates.
+- T3 (S7, done `71cdb0c`, inline): config.conf, install.sh, README,
+  shortcut-reference updates; remove `wallpaper-selector.sh`.
 
 ## Log
 
@@ -117,3 +118,37 @@ strategy: stacked-to-main, one work-unit commit per unit. Test runner:
   with empty state seeds the fallback across all three monitors from `mmsg`;
   `stop`, the usage message, and an unknown Workshop id error all behave.
   Committed as `db3275a`. Scratch removed.
+- L9 (2026-10-17, T2 evidence): `qmllint` exit 255 on `shell.qml` was isolated to
+  the IpcHandler's typed `function toggle(): void` (bare IpcHandler and an
+  untyped function both pass); it is a qmllint limitation, not a defect — the
+  explicit return type is required by the QuickShell IPC API. Authoritative
+  check: `WAYLAND_DISPLAY=wayland-0 timeout --signal=TERM 6s quickshell --path
+  quickshell/shell.qml --verbose` reported `Configuration Loaded` with no QML
+  errors and left no residual instance. `qmllint quickshell/WallpaperPicker.qml`
+  exited 0. Committed as `42a83fc`. Live `ipc call wallpaper toggle` end-to-end
+  deferred to the single shell reload after T3.
+- L10 (2026-10-17, T3 + live verification): `mango -c … config.conf -p` exit 0;
+  `bash -n` on install.sh + all scripts passed; `install.sh --dry-run` reported
+  `jq` and `linux-wallpaperengine-git` present and mutated nothing;
+  `git diff --check` clean. T3 committed as `71cdb0c`. Live end-to-end on the
+  running session: the already-running QuickShell (pid 3223) hot-reloaded
+  `shell.qml` and `quickshell ipc --pid 3223 show` lists `target wallpaper,
+  function toggle(): void` (runtime accepts the typed function; qmllint was a
+  false positive). `quickshell ipc … call wallpaper toggle` toggled the overlay:
+  `mmsg get all-layers` quickshell count 3 → 4 → 3. Real `wallpaper-ctl.sh
+  list` returned 15 local + 45 Workshop entries with real titles. A controlled
+  `linux-wallpaperengine --screen-root DP-1 --bg 1221712028
+  --fullscreen-pause-only-active` stayed alive with an EGL context and produced
+  no unknown-output error, confirming Mango's real output names are accepted
+  (`/proc/<pid>/comm` is `linux-wallpaper`, matching the 15-char prefix used by
+  `kill_pidfile`); it was killed and the user's mpvpaper left untouched. Mango
+  config reloaded (`reload_config` success) so the Super+Alt+W bind now spawns
+  the IPC toggle. Not verified here (needs a human): clicking a live preview to
+  apply, and first-frame render of a chosen background.
+- Risk: item 3 (contracts others consume) — the wallpaper flow moved from the
+  Wofi script to `wallpaper-ctl.sh` + a QuickShell overlay, and
+  `Super+Alt+W`/`exec_once` now target the new path; the old script was removed.
+  No independent verifier was added: this is a user-owned profile, the change's
+  own focused checks (`mango -p`, `bash -n`, `--dry-run`, stub smoke test, live
+  IPC toggle, real lwe launch) all passed, and the assessment names no
+  high-risk data/security/concurrency item.
