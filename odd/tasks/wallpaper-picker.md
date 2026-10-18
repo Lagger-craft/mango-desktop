@@ -145,6 +145,15 @@ strategy: stacked-to-main, one work-unit commit per unit. Test runner:
   config reloaded (`reload_config` success) so the Super+Alt+W bind now spawns
   the IPC toggle. Not verified here (needs a human): clicking a live preview to
   apply, and first-frame render of a chosen background.
+- L11 (2026-10-17, bugfix): `Super+Alt+W` showed nothing. Root cause: the bind
+  spawned `quickshell ipc call wallpaper toggle` with **no instance selector**;
+  the running bar is launched via `--path …/shell.qml`, not as the default
+  `~/.config/quickshell` config, so the selectorless call failed with
+  `Could not find "default" config directory…` (exit 255) and never reached the
+  handler. Fix: pass `-p $HOME/mango-desktop/quickshell/shell.qml` so `ipc call`
+  targets the right instance. Verified: selectorless call exit 255; with `-p`
+  exit 0, and the exact bind command toggles the overlay (quickshell layers
+  3→4→3). Mango reloaded so the shortcut is live.
 - Risk: item 3 (contracts others consume) — the wallpaper flow moved from the
   Wofi script to `wallpaper-ctl.sh` + a QuickShell overlay, and
   `Super+Alt+W`/`exec_once` now target the new path; the old script was removed.
