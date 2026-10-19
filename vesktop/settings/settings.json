@@ -5,7 +5,7 @@
     "themeLinks": [],
     "eagerPatches": false,
     "enabledThemes": [
-        "midnight.theme.css"
+        "mango.theme.css"
     ],
     "enableReactDevtools": false,
     "frameless": false,

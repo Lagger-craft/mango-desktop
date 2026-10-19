@@ -15,38 +15,35 @@ fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
 # S1/S2/S3: palette flows through, bad values fall back, profile resolution is
 # safe, writes are atomic and foreign files are never clobbered.
-test_zen_theme() {
+test_zen_prefs() {
   local H="$T/zh"
   local Z="$H/.config/zen/abc.Default (release)"
   local OLD="$H/.config/zen/old.Default (release)"
-  mkdir -p "$Z/chrome" "$H/.local/state/mango"
-  printf 'x' > "$Z/prefs.js"
-  printf '[InstallX]\nDefault=abc.Default (release)\n' > "$H/.config/zen/profiles.ini"
-  printf '{"accent":"#ff5722"}' > "$H/.local/state/mango/theme.json"
-  echo '// mine' > "$Z/user.js"          # foreign user.js: must survive
-
-  HOME="$H" "$REPO/mango/scripts/zen-theme.sh" >/dev/null
-  grep -q '#ff5722' "$Z/chrome/userChrome.css" || fail "S1: palette token missing"
-  [[ "$(cat "$Z/user.js")" == '// mine' ]] || fail "S1: foreign user.js clobbered"
-  [[ -z "$(find "$Z/chrome" -maxdepth 1 -name '.userChrome.css.*' -print -quit)" ]] ||
-    fail "S1: temporary file leaked"
-
-  # Bad palette values fall back per token.
-  printf '{"accent":"red","surface":"#ZZZZZZ"}' > "$H/.local/state/mango/theme.json"
-  HOME="$H" "$REPO/mango/scripts/zen-theme.sh" >/dev/null
-  grep -q '#9bd45a' "$Z/chrome/userChrome.css" || fail "S2: fallback palette missing"
-  if grep -q 'red' "$Z/chrome/userChrome.css"; then fail "S2: invalid value accepted"; fi
-
-  # No Install path with prefs.js -> fallback to the newest prefs.js profile.
-  mkdir -p "$OLD"
-  printf 'x' > "$OLD/prefs.js"
+  mkdir -p "$Z" "$OLD"
+  printf 'user_pref("browser.tabs.warnOnClose", false);\n' > "$Z/prefs.js"
+  printf 'user_pref("network.dns.disablePrefetch", false);\n' > "$OLD/prefs.js"
   touch -d '1 hour ago' "$OLD/prefs.js"
-  rm -f "$Z/prefs.js"
-  HOME="$H" "$REPO/mango/scripts/zen-theme.sh" >/dev/null
-  [[ -f "$OLD/chrome/userChrome.css" ]] || fail "S3: stale profile not used"
+  printf '[InstallX]\nDefault=abc.Default (release)\n' > "$H/.config/zen/profiles.ini"
+
+  HOME="$H" "$REPO/mango/scripts/zen-config.sh" >/dev/null
+
+  # The managed prefs are written into prefs.js.
+  grep -q 'toolkit.telemetry.enabled", false' "$Z/prefs.js" || fail "S1: telemetry pref missing"
+  grep -q 'dom.security.https_only_mode", true' "$Z/prefs.js" || fail "S1: https-only pref missing"
+  # Unrelated prefs of the user are preserved.
+  grep -q 'browser.tabs.warnOnClose' "$Z/prefs.js" || fail "S1: user pref dropped"
+  # The profile without the install path is not touched.
+  grep -q 'network.dns.disablePrefetch' "$OLD/prefs.js" || fail "S3: wrong profile written"
+
+  # Running twice must be idempotent (no duplicated lines).
+  local before after
+  before=$(grep -c 'toolkit.telemetry.enabled' "$Z/prefs.js")
+  HOME="$H" "$REPO/mango/scripts/zen-config.sh" >/dev/null
+  after=$(grep -c 'toolkit.telemetry.enabled' "$Z/prefs.js")
+  [[ "$before" == "$after" ]] || fail "S1: not idempotent"
 
   # No profile at all -> failure, nothing written.
-  ! HOME="$T/empty" "$REPO/mango/scripts/zen-theme.sh" >/dev/null 2>&1 ||
+  ! HOME="$T/empty" "$REPO/mango/scripts/zen-config.sh" >/dev/null 2>&1 ||
     fail "S3: missing profile must fail"
 }
 
@@ -91,7 +88,7 @@ test_user_js() {
   if grep -q 'safebrowsing' "$U"; then fail "S7: safe browsing disabled"; fi
 }
 
-test_zen_theme
+test_zen_prefs
 test_cleanup
 test_nftables
 test_user_js

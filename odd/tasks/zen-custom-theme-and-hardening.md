@@ -4,9 +4,13 @@
 
 - S1: "Seria bueno tener custom zen browser" — Zen Browser (1.23.2b, `zen-browser-bin`)
   must render its UI with the same Material palette the shell already uses.
+  **Superseded 2026-10-19 (L7):** the user saw the result and decided the Material
+  colours look wrong in a browser chrome — Zen keeps its own appearance. The spec now
+  covers the privacy configuration only.
 - S2: The palette source is the existing matugen output, not a new pipeline:
   "matugen puede leerlo para sacar los colores del wallpaper".
 - S3: The browser theme must follow the wallpaper automatically when the wallpaper changes.
+  **Superseded by S8.**
 - S4: "se puede hacer que se limpien cuando pasen 3 dias" — screenshots older than 3 days are
   deleted automatically. The cleanup must never touch the wallpaper source matugen samples from.
 - S5: "dame el comando para poder ejecutarlo y la explicacion" — screenshot directory permissions
@@ -15,17 +19,27 @@
   firewall recommendation with a ready-to-install configuration.
 - S7: Telemetry prefs must stay disabled; the actual current state must be verified and reported
   with evidence, not assumed.
+- S8: "dejar como esta por defecto el tema, pero colocar config para mayor seguridad y privacidad"
+  — Zen keeps its default appearance; only the privacy/security configuration is applied, and it
+  must actually take effect (not just be written and silently ignored).
+- S9: "personalizar vesktop, creando un tema con el estilo de mi sistema" — a Discord theme with
+  the shell's palette, self-contained (no remote stylesheet imports).
 
 ## Tasks
 
-- T1 (S1, S2, S3) — Zen theming: `zen/userChrome.css.template`, `mango/scripts/zen-theme.sh`,
-  `zen/user.js`, hook in `mango/scripts/wallpaper-ctl.sh`. Route: inline.
+- T1 (S1, S2, S3) — Zen theming: **closed, superseded** (`zen/userChrome.css.template` and
+  `mango/scripts/zen-theme.sh` removed in L7).
+- T1b (S8) — Zen privacy config: `zen/user.js` (source of truth), `mango/scripts/zen-config.sh`
+  (writes the prefs into the profile's `prefs.js`), `zen/policies.json` (enterprise policies).
+  Route: inline.
 - T2 (S4, S5) — Screenshot retention: `mango/scripts/screenshot-cleanup.sh`,
   `systemd/screenshot-cleanup.{service,timer}`, `mango/scripts/screenshot-area.sh` hardening.
   Route: inline.
 - T3 (S6) — Firewall: `nftables/nftables.conf` (nftables, not firewalld/ufw) + install commands.
   Route: inline.
 - T4 (S7) — Pref audit and hardening: `zen/user.js` telemetry/privacy prefs, evidence in Log.
+  Route: inline.
+- T5 (S9) — Vesktop theme: `vesktop/themes/mango.theme.css` + `mango/scripts/vesktop-theme.sh`.
   Route: inline.
 
 ## Log
@@ -41,6 +55,10 @@
 - L5: "Ambas sobre telemetria estan bloqueadas. Alguna estan en false."
 - L6: "Tambiens obre los permisos de las screenshot dame el comando para poder ejecutarlo y la
   explicacion, ademas hay que ver si matugen puede leerlo para sacar los colores del wallpaper."
+- L7: "Si se aplica, pero no como los otros navegadores, puedes dejar como esta por defecto el tema,
+  pero colocar config para mayor seguridad y privacidad, ya que con matugen se ve rarisimo los
+  colores. Lo que si tambien se podria hacer es personalizar vesktop, creando un tema con el
+  estilo de mi sistema."
 
 ### Analysis (2026-10-19)
 
@@ -83,4 +101,30 @@
 - Native review was not run: the clone-local receipt-driven development switch is **off**
   (`gentle-ai review mode status` → `off (decided by clone_local)`), so delivery stays under
   ordinary repository policy.
+
+### Round 2 (2026-10-19, after L7)
+
+**Zen theming removed.** `zen/userChrome.css.template` and `mango/scripts/zen-theme.sh` were
+deleted, the generated `chrome/userChrome.css` removed from the profile, and the hook in
+`wallpaper-ctl.sh` reverted. Zen keeps its own appearance.
+
+**Why the prefs had never applied.** Firefox only reads `user.js` while it is newer than
+`prefs.js`, and `prefs.js` is rewritten on every shutdown — so the symlinked `user.js` was
+silently ignored (evidence: `toolkit.telemetry.enabled` was absent from `prefs.js`). The prefs
+are now written directly into `prefs.js` by `mango/scripts/zen-config.sh`, which refuses to run
+while the profile is in use (`.parentlock` / a live `zen-bin` on that profile), because the
+browser rewrites `prefs.js` from memory when it exits and would drop the injected lines.
+`zen/policies.json` is the tamper-resistant alternative (enterprise policies, read at every
+start, root-owned at `/opt/zen-browser-bin/distribution/policies.json`).
+
+**Vesktop theme.** `vesktop/themes/mango.theme.css` maps the shell tokens onto Discord's CSS
+variables. Blocker found while verifying: Vesktop does not theme Discord by itself, it needs
+Vencord — and in this install **Vencord is present but inert**: `sessionData/vencordFiles/`
+holds the injected assets, yet Vencord never created its data directory (no `VencordData`/
+`Vencord` anywhere, no `vencord` key in the session Local Storage), no theme or QuickCSS
+channel had any effect (verified with a magenta marker in both channels), and the `themes/` +
+`settings/` files shipped in this repo were therefore dead weight.
+`mango/scripts/vesktop-theme.sh` detects Vencord's data directory, installs the theme and
+enables it in `enabledThemes`; until Vencord runs it reports the blocker instead of failing
+silently.
 

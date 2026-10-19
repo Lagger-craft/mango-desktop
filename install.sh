@@ -212,10 +212,23 @@ else
   warn "mango binary not available yet; config not parsed"
 fi
 
-# Zen browser: write the userChrome.css that matches the current palette and
-# link the pinned prefs (custom CSS + telemetry/privacy) into its profile.
-if [[ -x "$REPO_DIR/mango/scripts/zen-theme.sh" ]]; then
-  run "$REPO_DIR/mango/scripts/zen-theme.sh"
+# Zen browser: apply the privacy/security prefs to its profile. The browser
+# rewrites prefs.js when it exits, so this only works with Zen closed.
+if [[ -x "$REPO_DIR/mango/scripts/zen-config.sh" ]]; then
+  if "$REPO_DIR/mango/scripts/zen-config.sh" >/dev/null 2>&1; then
+    note "Zen browser privacy prefs applied"
+  else
+    note "Zen browser prefs NOT applied: close Zen and run $REPO_DIR/mango/scripts/zen-config.sh"
+  fi
+fi
+
+# Vesktop: install the "mango" theme (the shell palette) into Vencord.
+if [[ -x "$REPO_DIR/mango/scripts/vesktop-theme.sh" ]]; then
+  if "$REPO_DIR/mango/scripts/vesktop-theme.sh" >/dev/null 2>&1; then
+    note "Vesktop theme installed"
+  else
+    note "Vesktop theme NOT installed: $REPO_DIR/mango/scripts/vesktop-theme.sh"
+  fi
 fi
 
 # Daily screenshot prune (files older than 3 days).

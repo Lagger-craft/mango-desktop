@@ -202,29 +202,57 @@ overwritten. Once you pick your own image with `Super+Alt+W` the default is
 simply another entry in the list; delete it from `~/Pictures/Wallpapers` to
 remove it.
 
-## Zen Browser theme
+## Zen Browser privacy
 
-Zen Browser (`zen-browser-bin`) is themed from the same Material palette the
-shell uses. `mango/scripts/zen-theme.sh` reads
-`${XDG_STATE_HOME:-~/.local/state}/mango/theme.json` — the file matugen writes
-from the current wallpaper — and renders it into the active profile's
-`chrome/userChrome.css`, overriding Zen's design tokens (`--zen-primary-color`,
-`--zen-main-browser-background`, `--zen-navigator-toolbox-background`,
-`--zen-urlbar-background`, `--zen-dialog-background`, borders and accent).
-Because the palette is regenerated on every wallpaper change, the browser
-follows the wallpaper automatically.
+Zen Browser keeps its own appearance — the shell palette is **not** applied to
+it, on purpose: the Material colours do not suit a browser chrome.
 
-- The template lives in `zen/userChrome.css.template`; the generated CSS is
-  overwritten on each wallpaper change, so edit the template, not the profile
-  file.
-- `zen/user.js` is symlinked into the profile and applied on every browser
-  start. It enables `toolkit.legacyUserProfileCustomizations.stylesheets`
-  (required for `userChrome.css`) and pins telemetry off
-  (`toolkit.telemetry.enabled`, `toolkit.telemetry.unified`,
+What the profile does ship is a hardened privacy configuration
+(`zen/user.js`, applied by `mango/scripts/zen-config.sh`):
+
+- telemetry off (`toolkit.telemetry.enabled`, `toolkit.telemetry.unified`,
   `datareporting.policy.dataSubmissionEnabled`, `datareporting.healthreport.uploadEnabled`),
-  HTTPS-only mode and strict tracking protection.
-- Force a refresh without changing the wallpaper:
-  `"$HOME/mango-desktop/mango/scripts/zen-theme.sh"`.
+- HTTPS-only mode, DNS over HTTPS, strict tracking protection and fingerprinting
+  protection,
+- camera, microphone, geolocation and notifications set to "ask".
+
+The prefs are written straight into the profile's `prefs.js` because Firefox
+only reads `user.js` while it is newer than `prefs.js` — and `prefs.js` is
+rewritten on every shutdown. For the same reason the script refuses to run
+while the browser is open:
+
+```sh
+mango/scripts/zen-config.sh          # apply
+mango/scripts/zen-config.sh --check  # report what is missing
+```
+
+`zen/policies.json` holds the same guarantees as enterprise policies, which
+enforce them on every start regardless of timestamps:
+
+```sh
+sudo cp ~/mango-desktop/zen/policies.json /opt/zen-browser-bin/distribution/policies.json
+```
+
+The policies are read on the next start of the browser.
+
+## Vesktop theme
+
+`vesktop/themes/mango.theme.css` is the shell palette applied to Discord:
+charcoal surfaces, the green accent, soft corners and the shell's borders. It
+is self-contained — unlike the store themes (`midnight`, `system24`) it
+imports nothing from the network, so no third-party stylesheet is fetched.
+
+Vesktop has no theming of its own: Discord is restyled through Vencord, whose
+theme files live in `<data>/themes` and are listed in
+`<data>/settings/settings.json` under `enabledThemes`. The helper installs and
+enables it:
+
+```sh
+mango/scripts/vesktop-theme.sh
+```
+
+If Vencord has never run (its data directory does not exist), the script says
+so: open Vesktop → Settings → Vencord → Install, then run it again.
 
 ## Screenshots
 
@@ -274,7 +302,7 @@ apply only while this profile is running.
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
-bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-theme.sh ./mango/scripts/screenshot-cleanup.sh
+bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-config.sh ./mango/scripts/screenshot-cleanup.sh ./mango/scripts/vesktop-theme.sh
 bash ./tests/verify-hardening.sh
 ./install.sh --dry-run
 unshare -rn nft -c -f ./nftables/nftables.conf

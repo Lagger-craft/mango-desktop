@@ -1,0 +1,193 @@
+/**
+ * @name mango
+ * @description the mango-desktop shell palette, applied to Discord.
+ * @author mango-desktop
+ * @version 1.0.0
+ *
+ * Self-contained on purpose: unlike the store themes (midnight, system24) this
+ * file imports nothing from the network, so no third-party stylesheet is
+ * fetched at runtime.
+ *
+ * Palette = the shell's own tokens (quickshell/Theme.qml):
+ *   surface #171a17 | panel #222722 | well #20241f | deep #0c0e0c
+ *   accent  #9bd45a | accent bright #c8f08d | accent dim #3d5233
+ *   text    #e5e8dc | muted #a5a99d | dim #5a6055 | border #4a5a41
+ */
+
+:root {
+  /* Surfaces */
+  --background-primary: #171a17;
+  --background-secondary: #1b1f1a;
+  --background-tertiary: #222722;
+  --background-secondary-alt: #222722;
+  --background-tertiary-alt: #282d26;
+  --background-modifier-hover: rgba(155, 212, 90, 0.06);
+  --background-modifier-hover-2: rgba(155, 212, 90, 0.09);
+  --background-modifier-hover-3: rgba(155, 212, 90, 0.12);
+  --background-modifier-active: rgba(155, 212, 90, 0.12);
+  --background-modifier-selected: rgba(155, 212, 90, 0.14);
+  --background-modifier-message-hover: rgba(155, 212, 90, 0.04);
+  --background-floating: #1b1f1a;
+  --background-chat: #171a17;
+  --background-chat-header: #1b1f1a;
+  --background-channel: #1b1f1a;
+  --background-channel-text: #171a17;
+  --background-modal: #171a17;
+  --background-popover: #222722;
+  --background-secondary-footer: #12150f;
+
+  /* Text */
+  --text-normal: #e5e8dc;
+  --text-muted: #a5a99d;
+  --text-faint: #5a6055;
+  --text-link: #9bd45a;
+  --text-link-hover: #c8f08d;
+  --text-code: #c8f08d;
+  --text-markdown: #e5e8dc;
+  --text-mention: #9bd45a;
+  --text-mention-background: rgba(155, 212, 90, 0.16);
+  --text-success: #9bd45a;
+  --text-danger: #d94b43;
+  --text-warning: #e0a044;
+  --text-info: #7fa8c8;
+  --header-primary: #e5e8dc;
+  --header-secondary: #a5a99d;
+  --header-primary-alert: #d94b43;
+  --header-secondary-alert: #ec8064;
+  --header-primary-muted: #5a6055;
+
+  /* Brand / accent */
+  --brand-experiment: #9bd45a;
+  --brand-experiment-hover: #c8f08d;
+  --brand-experiment-active: #c8f08d;
+  --brand-experiment-foreground: #12150f;
+  --brand-experiment-gradient: none;
+  --mention-background-color: #3d5233;
+
+  /* Interactive */
+  --interactive-normal: #222722;
+  --interactive-hover: #282d26;
+  --interactive-active: #34432b;
+  --interactive-muted: #20241f;
+  --interactive-muted-hover: #282d26;
+
+  /* Inputs */
+  --input-background: #20241f;
+  --input-border: #4a5a41;
+  --input-border-hover: #9bd45a;
+  --input-placeholder-color: #5a6055;
+  --input-text-color: #e5e8dc;
+
+  /* Borders and focus */
+  --border-subtle: rgba(74, 90, 65, 0.5);
+  --border-strong: #4a5a41;
+  --border-faint: rgba(74, 90, 65, 0.25);
+  --focus-ring: #9bd45a;
+  --divider-color: rgba(74, 90, 65, 0.35);
+  --divider-thickness: 1px;
+  --border-thickness: 1px;
+
+  /* Scrollbars */
+  --scrollbar-thumb: #3d5233;
+  --scrollbar-thumb-hover: #4a5a41;
+  --scrollbar-track: transparent;
+  --scrollbar-width: 8px;
+
+  /* Elevation */
+  --elevation-low: rgba(12, 14, 12, 0.5);
+  --elevation-medium: rgba(12, 14, 12, 0.7);
+  --elevation-high: rgba(12, 14, 12, 0.85);
+  --elevation-stroke: 1px solid rgba(74, 90, 65, 0.45);
+
+  /* Corners: the shell uses soft 7px rounding */
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-xs: 3px;
+
+  /* Motion, matched to the compositor's snappy feel */
+  --animations: on;
+  --list-item-transition: 0.15s ease;
+  --dms-icon-svg-transition: 0.2s ease;
+  --message-mention-transition: 0.15s ease;
+  --channels-transition: 0.2s ease;
+  --guilds-transition: 0.2s ease;
+  --sidebar-transition: 0.2s ease;
+}
+
+/* Legacy aliases (older Discord builds still read these) */
+:root {
+  --brand-color: #9bd45a;
+  --brand-color-hover: #c8f08d;
+  --brand-color-2: #3d5233;
+  --brand-color-3: #9bd45a;
+  --brand-color-4: #c8f08d;
+  --brand-color-5: #3d5233;
+  --primary: #171a17;
+  --secondary: #1b1f1a;
+  --tertiary: #222722;
+  --modal-background: #171a17;
+  --chat-background: #171a17;
+  --panel-background-color: #222722;
+  --panel-background-color-alt: #282d26;
+  --inline-code-background: #20241f;
+}
+
+/* Titlebar / top bar: blend into the shell instead of a black band. */
+:root {
+  --titlebar-background: #171a17;
+  --titlebar-background-secondary: #1b1f1a;
+}
+
+.window-title,
+.titlebar,
+#titlebar {
+  background: var(--titlebar-background) !important;
+}
+
+/* Chat area and member list separation, with the shell's border color. */
+.chatContent,
+.chat,
+.member-list,
+.member-list-container {
+  background: var(--background-chat) !important;
+}
+
+.chatContent {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.chat-header {
+  background: var(--background-chat-header) !important;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Messages: subtle separators, no heavy bubbles. */
+div[class*="messageListItem"]:not([class* "]) {
+  border-bottom: 1px solid transparent;
+}
+
+/* Selected / hovered rows use the accent tint. */
+div[class*="listItem"][class*="selected"],
+div[class*="listItem"]:hover {
+  background-color: var(--background-modifier-hover) !important;
+}
+
+/* Scrollbars, thin and accent-dim, like the shell's wells. */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}

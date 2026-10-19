@@ -173,9 +173,6 @@ cmd_theme() { # $1 = optional monitor
     }' <<< "$json" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
     mkdir -p -- "$state_dir"
     mv -f -- "$tmp" "$theme_file"
-    # Second consumer of the same palette: the Zen browser userChrome.css.
-    # Best effort — a missing Zen install never breaks the theme pipeline.
-    "$script_dir/zen-theme.sh" >/dev/null 2>&1 || true
   else
     rm -f -- "$tmp"
   fi
@@ -380,9 +377,8 @@ case "${1:-}" in
   restore) cmd_restore ;;
   stop)    cmd_stop ;;
   theme)   shift 2>/dev/null; cmd_theme "${1:-}" ;;
-  zen)     "$script_dir/zen-theme.sh" ;;
   *)
-    printf 'usage: %s {list|apply <monitor> <local|we> <ref>|restore|stop|theme [monitor]|zen}\n' \
+    printf 'usage: %s {list|apply <monitor> <local|we> <ref>|restore|stop|theme [monitor]}\n' \
       "${0##*/}" >&2
     exit 2
     ;;
