@@ -20,6 +20,7 @@ readonly state_file="$state_dir/wallpapers.json"
 readonly pid_dir="$state_dir/wallpaper-pids"
 readonly lwe_pid="$pid_dir/lwe.pid"
 readonly render_log="$state_dir/renderer.log"
+readonly script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 die() { printf 'wallpaper-ctl: %s\n' "$*" >&2; exit 1; }
 
@@ -172,6 +173,9 @@ cmd_theme() { # $1 = optional monitor
     }' <<< "$json" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
     mkdir -p -- "$state_dir"
     mv -f -- "$tmp" "$theme_file"
+    # Second consumer of the same palette: the Zen browser userChrome.css.
+    # Best effort — a missing Zen install never breaks the theme pipeline.
+    "$script_dir/zen-theme.sh" >/dev/null 2>&1 || true
   else
     rm -f -- "$tmp"
   fi
@@ -376,8 +380,9 @@ case "${1:-}" in
   restore) cmd_restore ;;
   stop)    cmd_stop ;;
   theme)   shift 2>/dev/null; cmd_theme "${1:-}" ;;
+  zen)     "$script_dir/zen-theme.sh" ;;
   *)
-    printf 'usage: %s {list|apply <monitor> <local|we> <ref>|restore|stop|theme [monitor]}\n' \
+    printf 'usage: %s {list|apply <monitor> <local|we> <ref>|restore|stop|theme [monitor]|zen}\n' \
       "${0##*/}" >&2
     exit 2
     ;;
