@@ -23,6 +23,7 @@ REPO_PKGS=(
   cliphist     # bounded clipboard history
   wl-clipboard # wl-copy / wl-paste
   jq           # wallpaper-ctl JSON state and listing
+  matugen      # Material-You palette from the applied wallpaper
   grim         # screenshots
   slurp        # region selection
   firefox      # default browser
