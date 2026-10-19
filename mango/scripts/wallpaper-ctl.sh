@@ -149,7 +149,7 @@ cmd_theme() { # $1 = optional monitor
       panelBg: orf(c("background") | if . != "" then "#b3" + .[1:] else "" end; "#b3171a17"),
       popoverBg: orf(c("background") | if . != "" then "#cc" + .[1:] else "" end; "#cc171a17"),
       popupBg: orf(c("surface_variant") | if . != "" then "#f0" + .[1:] else "" end; "#f0171a17"),
-      overlayBg: orf(c("background") | if . != "" then "#d9" + .[1:] else "" end; "#d9141714"),
+      overlayBg: orf(c("background") | if . != "" then "#99" + .[1:] else "" end; "#99141714"),
       surface: orf(c("background"); "#171a17"),
       surfaceUp: orf(c("surface_container_low"); "#1b1f1a"),
       panel: orf(c("surface_container"); "#222722"),

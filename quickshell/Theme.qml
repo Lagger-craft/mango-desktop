@@ -23,7 +23,7 @@ QtObject {
   property color panelBg: "#b3171a17"     // bar islands (translucent)
   property color popoverBg: "#cc171a17"   // tray/toast-style popovers
   property color popupBg: "#f0171a17"     // opaque popups (bell, menus)
-  property color overlayBg: "#d9141714"   // full-screen dim overlays
+  property color overlayBg: "#99141714"   // full-screen dim overlays (frosted by mango blur)
   property color surface: "#171a17"       // solid card background
   property color surfaceUp: "#1b1f1a"     // dashboard panel
   property color panel: "#222722"         // picker panels
