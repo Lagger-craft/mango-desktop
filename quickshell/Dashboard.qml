@@ -8,11 +8,9 @@ import Quickshell.Services.Mpris
 // (dim backdrop + centered card). All state lives in the shell's `dashboard`
 // Scope, passed by reference as dashboardState: `active` says when to show,
 // `close()` dismisses. The notifications card consumes the shared
-// NotificationDaemon singleton (no dunst anywhere — README).
-// singleton — dunst stays the sole notification daemon (README). Nothing
+// NotificationDaemon singleton. Nothing
 // here touches the network: artwork is local-file-only and the system card
-// reads procfs. The notifications card consumes the shared NotificationDaemon
-// singleton — no dunst anywhere (README).
+// reads procfs.
 Item {
   id: dashboard
   required property var dashboardState // Scope: property bool active, function close()

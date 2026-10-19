@@ -25,7 +25,6 @@ REPO_PKGS=(
   jq           # wallpaper-ctl JSON state and listing
   grim         # screenshots
   slurp        # region selection
-  dunst        # notification daemon
   firefox      # default browser
   chromium     # fallback browser (Super+Shift+W)
   xdg-utils    # xdg-settings default-browser handling
@@ -120,7 +119,6 @@ remove_link() {
 if [[ "$MODE" == uninstall ]]; then
   echo "Reversing installer-created links (packages and wallpaper state stay):"
   remove_link "$HOME/.config/mango"
-  remove_link "$HOME/.config/dunst/dunstrc"
   remove_link "$HOME/.config/vesktop"
   remove_link "$HOME/.config/fastfetch"
   remove_link "$HOME/.zshrc"
@@ -164,7 +162,6 @@ fi
 
 echo "Linking configuration (existing paths are never overwritten):"
 link_config "$REPO_DIR/mango" "$HOME/.config/mango"
-link_config "$REPO_DIR/dunst/dunstrc" "$HOME/.config/dunst/dunstrc"
 link_config "$REPO_DIR/vesktop" "$HOME/.config/vesktop"
 link_config "$REPO_DIR/zsh/.zshrc" "$HOME/.zshrc"
 link_config "$REPO_DIR/fastfetch" "$HOME/.config/fastfetch"

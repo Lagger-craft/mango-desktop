@@ -42,8 +42,7 @@ PopupWindow {
 
     Repeater {
       // Newest first, but render oldest at top so new ones push in at the
-      // bottom edge near the bar? No: dunst-like, newest at bottom-right.
-      // Reverse for display: the visual stack reads top = newest.
+      // bottom edge near the bar? Newest at top, oldest at the bottom.
       model: NotificationDaemon.live
 
       delegate: Rectangle {

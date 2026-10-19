@@ -46,12 +46,12 @@ cd "$HOME/mango-desktop"
 
 Dependency policy: official-repo packages are installed with `pacman`
 (`mangowm`, `quickshell`, `foot`, `wofi`, `cliphist`, `wl-clipboard`, `jq`,
-`grim`, `slurp`, `dunst`, `firefox`, `chromium`, `xdg-utils`, `fastfetch`); AUR-only packages go
+`grim`, `slurp`, `firefox`, `chromium`, `xdg-utils`, `fastfetch`); AUR-only packages go
 through the first available helper among `yay` and `paru` (`mpvpaper`,
 `linux-wallpaperengine-git`). Set `AUR_HELPER=<helper>` to force one. The
 installer is idempotent and
 non-destructive: it never overwrites an existing config path (an occupied
-`~/.config/mango`, `~/.config/dunst/dunstrc`, `~/.config/vesktop`,
+`~/.config/mango`, `~/.config/vesktop`,
 `~/.config/fastfetch`, or
 `~/.zshrc` is reported as `SKIP` and left alone), it only sets the XDG default
 browser when none is configured, and it never touches Niri or
@@ -60,7 +60,7 @@ browser when none is configured, and it never touches Niri or
 
 The repository ships the live configuration for this profile: `mango/`
 (compositor config and scripts), `quickshell/shell.qml` (the panel, started
-directly from `mango/config.conf`, no symlink needed), `dunst/dunstrc`,
+directly from `mango/config.conf`, no symlink needed),
 `vesktop/` (themes and settings; `vesktop/sessionData/` is runtime state and
 stays untracked), `zsh/.zshrc`, and `fastfetch/` (the terminal system-info
 config and its custom skull ASCII logo). The installer links all of them into
@@ -114,10 +114,10 @@ The panel includes a clock (clicking it toggles a calendar popup under the
 island, or `Super`-bindable `quickshell ipc call calendar toggle`), a ZONE
 label that opens the dashboard, a system tray (left-click activates,
 middle-click secondary activates, right-click opens the item's menu), a
-notification icon that opens a Dunst-backed review panel (history, re-show
-one or the latest, clear history, close displayed), and an icon-only power
-control. The dashboard is a dimmed full-screen overlay (the ZONE label or
-`quickshell ipc call dashboard toggle`) with Dunst notification history,
+notification icon that opens a review panel (history, re-show one or the
+latest, clear history, close displayed), and an icon-only power control. The
+dashboard is a dimmed full-screen overlay (the ZONE label or
+`quickshell ipc call dashboard toggle`) with notification history,
 live CPU/RAM/uptime/kernel figures, the active MPRIS player, and session
 actions (logout, reboot, poweroff). The `Super+Alt+W` wallpaper picker is a QuickShell overlay, not a Wofi menu (see
 `## Wallpapers`); there is no redundant panel button. The Wofi
@@ -146,14 +146,15 @@ The `Super+Shift+S` region screenshot is saved under
 replaces the current clipboard with that screenshot; canceling the selector
 leaves the clipboard unchanged.
 
-Dunst remains the sole notification daemon. The project provides
-`dunst/dunstrc`; after verifying that `~/.config/dunst/dunstrc` does not already
-exist, link it to `$HOME/mango-desktop/dunst/dunstrc` and apply it to the running
-daemon with `dunstctl reload`. To roll back, remove only that link if it still
-points to this project and run `dunstctl reload` again to restore Dunst's
-default configuration. Do not start a second notification server. The
-QuickShell notification icon is a reader over `dunstctl` (counts and history),
-not a second server, so it adds no notification daemon of its own.
+Notifications are handled entirely inside QuickShell: its `NotificationServer`
+is the sole notification daemon, so there is no extra process. Incoming
+notifications render as themed toasts under the bar on the focused monitor;
+critical ones persist until dismissed. The bell icon reads the same shell
+singleton (bounded history, badge with live count). If dunst is installed it
+should be removed: it D-Bus-activates on the first `notify-send` and races the
+shell for `org.freedesktop.Notifications`. A user-level override at
+`~/.local/share/dbus-1/services/org.freedesktop.Notifications.service` with
+`Exec=/bin/false` masks that activation without touching system files.
 
 The project's scripts and configuration perform no network requests and fetch
 no remote assets. This guarantee applies only to this project's code; browsers
@@ -205,7 +206,7 @@ The per-monitor state map and renderer PIDs are stored under
 `${XDG_STATE_HOME:-~/.local/state}/mango`; remove that `mango` state directory
 only if you also want to forget the chosen wallpapers. `./install.sh --uninstall` deliberately leaves `~/Pictures/Wallpapers`
 alone, so a seeded `default.png` stays behind until you delete it yourself.
-This profile links `~/.config/mango`, `~/.config/dunst/dunstrc`,
+This profile links `~/.config/mango`,
 `~/.config/vesktop`, and `~/.zshrc`, and sets Firefox as the XDG default;
 `./install.sh --uninstall` reverses exactly those links, while the Niri config
 and `~/.config/quickshell` are never touched. Mango's explicit output rules
