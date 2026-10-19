@@ -68,7 +68,7 @@ Row {
       id: zoneLabel
       anchors.centerIn: parent
       text: "☢  ZONE"
-      color: zoneMouse.containsMouse ? "#c8f085" : "#a6dc69"
+      color: zoneMouse.containsMouse ? Theme.accentBright : Theme.accent
       font.bold: true
       font.pixelSize: 13
 
@@ -87,7 +87,7 @@ Row {
   Rectangle {
     width: 1
     height: 18
-    color: "#485044"
+    color: Theme.divider
     anchors.verticalCenter: parent.verticalCenter
   }
 
@@ -112,13 +112,13 @@ Row {
   Rectangle {
     width: 1
     height: 18
-    color: "#485044"
+    color: Theme.divider
     anchors.verticalCenter: parent.verticalCenter
   }
 
   Text {
     text: tagsRoot.screenName
-    color: "#a5a99d"
+    color: Theme.textSecondary
     font.pixelSize: 11
     anchors.verticalCenter: parent.verticalCenter
   }

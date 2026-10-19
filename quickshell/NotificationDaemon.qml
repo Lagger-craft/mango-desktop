@@ -36,9 +36,9 @@ QtObject {
   }
 
   function urgencyColor(u) {
-    if (u === "CRITICAL") return "#d94b43";
-    if (u === "LOW") return "#5a6055";
-    return "#9bd45a";
+    if (u === "CRITICAL") return Theme.critical;
+    if (u === "LOW") return Theme.textDim;
+    return Theme.accent;
   }
 
   // Auto-dismiss per urgency; 0 = persist until dismissed (critical).

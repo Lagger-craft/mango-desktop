@@ -66,17 +66,17 @@ Item {
 
   // Radioactive green for the visible tag, warning amber for
   // an urgent one, bone when it holds windows, moss when empty.
-  readonly property color tint: modelData.is_active ? "#9bd45a"
-                               : modelData.is_urgent ? "#e0a030"
-                               : modelData.client_count > 0 ? "#e4dfcf"
-                               : "#3d5233"
+  readonly property color tint: modelData.is_active ? Theme.accent
+                               : modelData.is_urgent ? Theme.warning
+                               : modelData.client_count > 0 ? Theme.accentBright
+                               : Theme.accentDim
 
   // Subtle pad behind the active skull only.
   Rectangle {
     anchors.fill: parent
     anchors.margins: -2
     radius: 5
-    color: skullTag.modelData.is_active ? "#262b24" : "transparent"
+    color: skullTag.modelData.is_active ? Theme.hover : "transparent"
     Behavior on color { ColorAnimation { duration: 150 } }
   }
 
@@ -90,7 +90,7 @@ Item {
       y: Math.floor(modelData / skullTag.skullSize) * skullTag.skullPixel
       width: skullTag.skullPixel
       height: skullTag.skullPixel
-      color: "#0c0e0c"
+      color: Theme.deeper
     }
   }
 

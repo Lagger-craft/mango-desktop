@@ -21,7 +21,7 @@ Item {
     font.family: "JetBrainsMono Nerd Font Mono"
     font.pixelSize: 16
     color: bellMouse.containsMouse || NotificationDaemon.pending > 0
-         ? "#e0a044" : "#c8d2c0"
+         ? Theme.warning : Theme.textIdle
     Behavior on color { ColorAnimation { duration: 140 } }
   }
 
@@ -38,15 +38,15 @@ Item {
     width: Math.max(14, badgeText.implicitWidth + 7)
     height: 14
     radius: 7
-    color: "#e0a044"
+    color: Theme.warning
     border.width: 1
-    border.color: "#171a17"
+    border.color: Theme.surface
 
     Text {
       id: badgeText
       anchors.centerIn: parent
       text: NotificationDaemon.pending > 99 ? "99+" : String(NotificationDaemon.pending)
-      color: "#171a17"
+      color: Theme.surface
       font.pixelSize: 9
       font.bold: true
     }
@@ -80,15 +80,15 @@ Item {
     required property var action
     height: 20
     radius: 4
-    color: actionMouse.containsMouse ? "#2a3126" : "#20231e"
+    color: actionMouse.containsMouse ? Theme.hover : Theme.buttonBg
     border.width: 1
-    border.color: actionMouse.containsMouse ? "#9bd45a" : "#4a5a41"
+    border.color: actionMouse.containsMouse ? Theme.accent : Theme.outline
     Behavior on border.color { ColorAnimation { duration: 120 } }
 
     Text {
       anchors.centerIn: parent
       text: actionBtn.label
-      color: actionMouse.containsMouse ? "#e5e8dc" : "#a5a99d"
+      color: actionMouse.containsMouse ? Theme.textPrimary : Theme.textSecondary
       font.pixelSize: 9
       font.bold: true
       font.letterSpacing: 0.5
@@ -134,9 +134,9 @@ Item {
     Rectangle {
       anchors.fill: parent
       radius: 10
-      color: "#f0171a17"
+      color: Theme.popupBg
       border.width: 1
-      border.color: "#4a5a41"
+      border.color: Theme.outline
 
       Column {
         id: popupBody
@@ -154,7 +154,7 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             text: "☢  NOTIFICATIONS"
-            color: "#a6dc69"
+            color: Theme.accent
             font.bold: true
             font.pixelSize: 11
             font.letterSpacing: 1
@@ -167,7 +167,7 @@ Item {
                  + (NotificationDaemon.pending > 0
                     ? "  ·  " + NotificationDaemon.pending + " active" : "")
                  + (NotificationDaemon.dnd ? "  ·  DND" : "")
-            color: "#5a6055"
+            color: Theme.textDim
             font.pixelSize: 10
           }
         }
@@ -194,7 +194,7 @@ Item {
         Rectangle {
           width: popupBody.width
           height: 1
-          color: "#485044"
+          color: Theme.divider
         }
 
         Flickable {
@@ -214,7 +214,7 @@ Item {
               visible: NotificationDaemon.history.length === 0
               width: listColumn.width
               text: "No notifications in history"
-              color: "#5a6055"
+              color: Theme.textDim
               font.pixelSize: 10
               horizontalAlignment: Text.AlignHCenter
               topPadding: 4
@@ -230,7 +230,7 @@ Item {
                 width: listColumn.width
                 height: entryCol.implicitHeight + 10
                 radius: 6
-                color: entryMouse.containsMouse ? "#2a3126" : "transparent"
+                color: entryMouse.containsMouse ? Theme.hover : "transparent"
                 Behavior on color { ColorAnimation { duration: 120 } }
 
                 Column {
@@ -258,7 +258,7 @@ Item {
                     Text {
                       width: parent.width - 12
                       text: entry.modelData.summary
-                      color: entry.modelData.urgency === "CRITICAL" ? "#d94b43" : "#e5e8dc"
+                      color: entry.modelData.urgency === "CRITICAL" ? Theme.critical : Theme.textPrimary
                       font.bold: true
                       font.pixelSize: 11
                       elide: Text.ElideRight
@@ -270,7 +270,7 @@ Item {
                     width: entryCol.width
                     text: entry.modelData.appname
                         + (entry.modelData.body ? "  ·  " + entry.modelData.body : "")
-                    color: "#a5a99d"
+                    color: Theme.textSecondary
                     font.pixelSize: 10
                     elide: Text.ElideRight
                     maximumLineCount: 2

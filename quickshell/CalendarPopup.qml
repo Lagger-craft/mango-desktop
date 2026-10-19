@@ -78,9 +78,9 @@ PopupWindow {
   Rectangle {
     anchors.fill: parent
     radius: 10
-    color: "#f0171a17"
+    color: Theme.popupBg
     border.width: 1
-    border.color: "#4a5a41"
+    border.color: Theme.outline
 
     Column {
       id: calendarBody
@@ -99,7 +99,7 @@ PopupWindow {
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           text: "‹"
-          color: prevMonthMouse.containsMouse ? "#9bd45a" : "#c8d2c0"
+          color: prevMonthMouse.containsMouse ? Theme.accent : Theme.textIdle
           font.pixelSize: 18
           Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -117,7 +117,7 @@ PopupWindow {
           anchors.centerIn: parent
           text: Qt.locale().standaloneMonthName(calendarPopup.viewMonth)
                 + " " + calendarPopup.viewYear
-          color: "#e5e8dc"
+          color: Theme.textPrimary
           font.pixelSize: 12
           font.bold: true
           font.letterSpacing: 1
@@ -128,7 +128,7 @@ PopupWindow {
           anchors.right: parent.right
           anchors.verticalCenter: parent.verticalCenter
           text: "›"
-          color: nextMonthMouse.containsMouse ? "#9bd45a" : "#c8d2c0"
+          color: nextMonthMouse.containsMouse ? Theme.accent : Theme.textIdle
           font.pixelSize: 18
           Behavior on color { ColorAnimation { duration: 120 } }
 
@@ -154,7 +154,7 @@ PopupWindow {
             required property var modelData
             width: calendarPopup.cellWidth
             text: modelData.toUpperCase()
-            color: "#5a6055"
+            color: Theme.textDim
             font.pixelSize: 10
             font.bold: true
             font.letterSpacing: 0.5
@@ -190,7 +190,7 @@ PopupWindow {
             anchors.fill: parent
             anchors.margins: 2
             radius: 6
-            color: "#9bd45a"
+            color: Theme.accent
           }
 
           Rectangle { // hover feedback for the days without the chip
@@ -198,14 +198,14 @@ PopupWindow {
             anchors.fill: parent
             anchors.margins: 2
             radius: 6
-            color: "#2a3126"
+            color: Theme.hover
           }
 
           Text {
             anchors.centerIn: parent
             text: cell.model.day
-            color: cell.isToday ? "#171a17"
-                 : cell.isCurrentMonth ? "#c8d2c0" : "#5a6055"
+            color: cell.isToday ? Theme.surface
+                 : cell.isCurrentMonth ? Theme.textIdle : Theme.textDim
             font.pixelSize: 11
             font.bold: cell.isToday
           }

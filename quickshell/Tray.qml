@@ -107,9 +107,9 @@ Row {
     Rectangle {
       anchors.fill: parent
       radius: 8
-      color: "#f0171a17"
+      color: Theme.popupBg
       border.width: 1
-      border.color: "#3d5233"
+      border.color: Theme.accentDim
 
       Column {
         id: menuColumn
@@ -145,7 +145,7 @@ Row {
               anchors.centerIn: parent
               width: parent.width - 12
               height: 1
-              color: "#485044"
+              color: Theme.divider
             }
 
             // Hover highlight behind the row content
@@ -153,7 +153,7 @@ Row {
               visible: !entry.modelData.isSeparator
               anchors.fill: parent
               radius: 5
-              color: entryMouse.containsMouse && entry.modelData.enabled ? "#2a3126" : "transparent"
+              color: entryMouse.containsMouse && entry.modelData.enabled ? Theme.hover : "transparent"
               Behavior on color { ColorAnimation { duration: 120 } }
             }
 
@@ -170,7 +170,7 @@ Row {
                 width: visible ? 14 : 0
                 anchors.verticalCenter: parent.verticalCenter
                 text: entry.modelData.buttonType === QsMenuButtonType.RadioButton ? "●" : "✓"
-                color: entry.modelData.checkState === Qt.Checked ? "#9bd45a" : "#5a6055"
+                color: entry.modelData.checkState === Qt.Checked ? Theme.accent : Theme.textDim
                 font.pixelSize: 11
                 horizontalAlignment: Text.AlignHCenter
               }
@@ -180,8 +180,8 @@ Row {
                 width: parent.width - parent.spacing - (entry.modelData.buttonType !== QsMenuButtonType.None ? 22 : 0)
                 anchors.verticalCenter: parent.verticalCenter
                 text: entry.modelData.text
-                color: !entry.modelData.enabled ? "#5a6055"
-                     : entryMouse.containsMouse ? "#e5e8dc" : "#a5a99d"
+                color: !entry.modelData.enabled ? Theme.textDim
+                     : entryMouse.containsMouse ? Theme.textPrimary : Theme.textSecondary
                 font.pixelSize: 12
                 elide: Text.ElideRight
                 Behavior on color { ColorAnimation { duration: 120 } }
@@ -193,7 +193,7 @@ Row {
                 width: visible ? 12 : 0
                 anchors.verticalCenter: parent.verticalCenter
                 text: "›"
-                color: "#5a6055"
+                color: Theme.textDim
                 font.pixelSize: 14
                 horizontalAlignment: Text.AlignHCenter
               }
@@ -207,7 +207,7 @@ Row {
   Rectangle {
     width: 1
     height: 20
-    color: "#485044"
+    color: Theme.divider
     anchors.verticalCenter: parent.verticalCenter
     visible: SystemTray.items.count > 0
   }

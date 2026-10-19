@@ -17,15 +17,15 @@ Item {
   focus: true
   anchors.fill: parent
 
-  readonly property color surface: "#171a17"
-  readonly property color accent: "#9bd45a"
-  readonly property color amber: "#e0a044"
-  readonly property color red: "#d94b43"
-  readonly property color textPrimary: "#e5e8dc"
-  readonly property color textSecondary: "#c8d2c0"
-  readonly property color textDim: "#5a6055"
-  readonly property color panel: "#1b1f1a"
-  readonly property color edge: "#4a5a41"
+  readonly property color surface: Theme.surface
+  readonly property color accent: Theme.accent
+  readonly property color amber: Theme.warning
+  readonly property color red: Theme.critical
+  readonly property color textPrimary: Theme.textPrimary
+  readonly property color textSecondary: Theme.textIdle
+  readonly property color textDim: Theme.textDim
+  readonly property color panel: Theme.surfaceUp
+  readonly property color edge: Theme.outline
   readonly property string mono: "JetBrainsMono Nerd Font Mono"
 
   Keys.onEscapePressed: dashboardState.close()
@@ -169,7 +169,7 @@ Item {
     width: parent.width
     height: 6
     radius: 3
-    color: "#282d26"
+    color: Theme.panelTint
 
     Rectangle {
       width: parent.width * Math.max(0, Math.min(1, bar.value))
@@ -223,7 +223,7 @@ Item {
       anchors.top: cardTitle.bottom
       anchors.topMargin: 8
       height: 1
-      color: "#485044"
+      color: Theme.divider
     }
     Column {
       id: cardBody
@@ -243,7 +243,7 @@ Item {
     width: actionLabel.implicitWidth + 24
     height: 22
     radius: 4
-    color: actionMouse.containsMouse ? "#2a3126" : "#20231e"
+    color: actionMouse.containsMouse ? Theme.hover : Theme.buttonBg
     border.width: 1
     border.color: actionMouse.containsMouse ? dashboard.accent : dashboard.edge
     Behavior on border.color { ColorAnimation { duration: 120 } }
@@ -286,7 +286,7 @@ Item {
     width: parent.width
     height: 42
     radius: 6
-    color: sessMouse.containsMouse ? "#2a3126" : "#20231e"
+    color: sessMouse.containsMouse ? Theme.hover : Theme.buttonBg
     border.width: 1
     border.color: sessMouse.containsMouse ? toneColor : baseTone
     opacity: enabled ? 1 : 0.4
@@ -331,7 +331,7 @@ Item {
     width: 36
     height: 30
     radius: 4
-    color: transportMouse.containsMouse ? "#2a3126" : "#20231e"
+    color: transportMouse.containsMouse ? Theme.hover : Theme.buttonBg
     border.width: 1
     border.color: transportMouse.containsMouse ? dashboard.accent : dashboard.edge
     opacity: enabled ? 1 : 0.4
@@ -357,7 +357,7 @@ Item {
   // Dim backdrop; click anywhere to dismiss.
   Rectangle {
     anchors.fill: parent
-    color: "#d9141714"
+    color: Theme.overlayBg
     MouseArea {
       anchors.fill: parent
       onClicked: dashboard.dashboardState.close()
@@ -408,13 +408,13 @@ Item {
         width: closeLabel.implicitWidth + 20
         height: 24
         radius: 4
-        color: closeMouse.containsMouse ? "#402d29" : "#222722"
+        color: closeMouse.containsMouse ? Theme.buttonHoverBg : Theme.panel
         border.color: dashboard.edge
         Text {
           id: closeLabel
           anchors.centerIn: parent
           text: "✕ CLOSE"
-          color: closeMouse.containsMouse ? "#ec8064" : dashboard.textSecondary
+          color: closeMouse.containsMouse ? Theme.criticalSoft : dashboard.textSecondary
           font.family: dashboard.mono
           font.pixelSize: 11
         }
@@ -470,7 +470,7 @@ Item {
         Rectangle {
           width: parent.width
           height: 1
-          color: "#485044"
+          color: Theme.divider
         }
 
         Flickable {
@@ -506,7 +506,7 @@ Item {
                 width: notifColumn.width
                 height: entryCol.implicitHeight + 8
                 radius: 6
-                color: entryMouse.containsMouse ? "#2a3126" : "transparent"
+                color: entryMouse.containsMouse ? Theme.hover : "transparent"
                 Behavior on color { ColorAnimation { duration: 120 } }
 
                 Column {
@@ -694,7 +694,7 @@ Item {
               width: 88
               height: 88
               radius: 6
-              color: "#12150f"
+              color: Theme.deep
               border.width: 1
               border.color: dashboard.edge
 

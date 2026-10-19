@@ -20,9 +20,9 @@ PopupWindow {
   Rectangle {
     anchors.fill: parent
     radius: 8
-    color: "#f0171a17"
+    color: Theme.popupBg
     border.width: 1
-    border.color: osdState.muted ? "#e0a030" : "#3d5233"
+    border.color: osdState.muted ? Theme.warning : Theme.accentDim
 
     Row {
       anchors.fill: parent
@@ -42,7 +42,7 @@ PopupWindow {
 
         Text {
           text: osdState.muted ? "MUTED" : "VOLUME " + Math.round(osdState.volume * 100) + "%"
-          color: osdState.muted ? "#e0a030" : "#a6dc69"
+          color: osdState.muted ? Theme.warning : Theme.accent
           font.bold: true
           font.pixelSize: 12
           font.letterSpacing: 0.5
@@ -52,13 +52,13 @@ PopupWindow {
           width: parent.width
           height: 6
           radius: 3
-          color: "#282d26"
+          color: Theme.panelTint
 
           Rectangle {
             width: parent.width * (osdState.muted ? 0 : osdState.volume)
             height: parent.height
             radius: 3
-            color: osdState.muted ? "#e0a030" : "#9bd45a"
+            color: osdState.muted ? Theme.warning : Theme.accent
 
             Behavior on width {
               NumberAnimation { duration: 120; easing.type: Easing.OutCubic }

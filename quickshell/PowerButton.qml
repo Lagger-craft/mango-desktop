@@ -13,7 +13,7 @@ Item {
   Text {
     anchors.centerIn: parent
     text: "⏻"
-    color: powerMouse.containsMouse ? "#ec8064" : "#c8d2c0"
+    color: powerMouse.containsMouse ? Theme.criticalSoft : Theme.textIdle
     font.pixelSize: 17
     Behavior on color { ColorAnimation { duration: 140 } }
   }

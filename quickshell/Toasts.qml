@@ -52,7 +52,7 @@ PopupWindow {
         width: toastColumn.width
         height: toastBody.implicitHeight + 12
         radius: 8
-        color: "#f0171a17"
+        color: Theme.popupBg
         border.width: 1
         border.color: NotificationDaemon.urgencyColor(toast.modelData.urgency)
 
@@ -93,7 +93,7 @@ PopupWindow {
             Text {
               width: parent.width - 12
               text: toast.modelData.summary
-              color: toast.modelData.urgency === "CRITICAL" ? "#d94b43" : "#e5e8dc"
+              color: toast.modelData.urgency === "CRITICAL" ? Theme.critical : Theme.textPrimary
               font.bold: true
               font.pixelSize: 11
               elide: Text.ElideRight
@@ -105,7 +105,7 @@ PopupWindow {
             visible: toast.modelData.body.length > 0
             width: toastBody.width
             text: toast.modelData.appname + "  ·  " + toast.modelData.body
-            color: "#a5a99d"
+            color: Theme.textSecondary
             font.pixelSize: 10
             elide: Text.ElideRight
             maximumLineCount: 3
@@ -124,15 +124,15 @@ PopupWindow {
                 width: actText.implicitWidth + 12
                 height: 18
                 radius: 4
-                color: actMouse.containsMouse ? "#2a3126" : "#20231e"
+                color: actMouse.containsMouse ? Theme.hover : Theme.buttonBg
                 border.width: 1
-                border.color: actMouse.containsMouse ? "#9bd45a" : "#4a5a41"
+                border.color: actMouse.containsMouse ? Theme.accent : Theme.outline
 
                 Text {
                   id: actText
                   anchors.centerIn: parent
                   text: actBtn.modelData.text
-                  color: "#a5a99d"
+                  color: Theme.textSecondary
                   font.pixelSize: 9
                 }
 

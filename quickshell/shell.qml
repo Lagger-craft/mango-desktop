@@ -256,9 +256,9 @@ ShellRoot {
           height: 30
           width: tagsRow.implicitWidth + 24
           radius: 10
-          color: "#b3171a17"
+          color: Theme.panelBg
           border.width: 1
-          border.color: "#599bd45a"
+          border.color: Theme.accentBorder
 
           Rectangle { // toxic top accent, inset past the rounded corners
             anchors.top: parent.top
@@ -268,7 +268,7 @@ ShellRoot {
             anchors.leftMargin: 16
             anchors.rightMargin: 16
             height: 2
-            color: "#9bd45a"
+            color: Theme.accent
           }
 
           Row {
@@ -292,9 +292,9 @@ ShellRoot {
           height: 30
           width: clock.implicitWidth + 28
           radius: 10
-          color: "#b3171a17"
+          color: Theme.panelBg
           border.width: 1
-          border.color: "#599bd45a"
+          border.color: Theme.accentBorder
 
           Rectangle {
             anchors.top: parent.top
@@ -304,7 +304,7 @@ ShellRoot {
             anchors.leftMargin: 16
             anchors.rightMargin: 16
             height: 2
-            color: "#9bd45a"
+            color: Theme.accent
           }
 
           Clock {
@@ -341,9 +341,9 @@ ShellRoot {
           height: 30
           width: actionsRow.implicitWidth + 20
           radius: 10
-          color: "#b3171a17"
+          color: Theme.panelBg
           border.width: 1
-          border.color: "#599bd45a"
+          border.color: Theme.accentBorder
 
           Rectangle {
             anchors.top: parent.top
@@ -353,7 +353,7 @@ ShellRoot {
             anchors.leftMargin: 16
             anchors.rightMargin: 16
             height: 2
-            color: "#9bd45a"
+            color: Theme.accent
           }
 
           Row {

@@ -2,7 +2,7 @@ import QtQuick
 
 Text {
   id: clock
-  color: "#e5e8dc"
+  color: Theme.textPrimary
   font.pixelSize: 13
   font.letterSpacing: 0.3
 

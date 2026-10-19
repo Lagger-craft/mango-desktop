@@ -12,14 +12,14 @@ Item {
   property var pickerState
   focus: true
 
-  readonly property color surface: "#171a17"
-  readonly property color accent: "#9bd45a"
-  readonly property color accentDim: "#3d5233"
-  readonly property color textPrimary: "#e5e8dc"
-  readonly property color textMuted: "#a5a99d"
-  readonly property color panel: "#222722"
-  readonly property color edge: "#485342"
-  readonly property color selected: "#34432b"
+  readonly property color surface: Theme.surface
+  readonly property color accent: Theme.accent
+  readonly property color accentDim: Theme.accentDim
+  readonly property color textPrimary: Theme.textPrimary
+  readonly property color textMuted: Theme.textSecondary
+  readonly property color panel: Theme.panel
+  readonly property color edge: Theme.outline
+  readonly property color selected: Theme.selectedBg
   readonly property string mono: "monospace"
 
   readonly property var currentModel: pickerState.activeTab === "we"
@@ -41,7 +41,7 @@ Item {
   // Dim backdrop; click anywhere to dismiss.
   Rectangle {
     anchors.fill: parent
-    color: "#d9141714"
+    color: Theme.overlayBg
     MouseArea {
       anchors.fill: parent
       onClicked: pickerState.close()
@@ -93,13 +93,13 @@ Item {
           width: closeLabel.implicitWidth + 20
           height: 24
           radius: 4
-          color: closeMouse.containsMouse ? "#402d29" : picker.panel
+          color: closeMouse.containsMouse ? Theme.buttonHoverBg : picker.panel
           border.color: picker.edge
           Text {
             id: closeLabel
             anchors.centerIn: parent
             text: "✕ CLOSE"
-            color: closeMouse.containsMouse ? "#ec8064" : picker.textMuted
+            color: closeMouse.containsMouse ? Theme.criticalSoft : picker.textMuted
             font.family: picker.mono
             font.pixelSize: 11
           }
@@ -138,7 +138,7 @@ Item {
               id: monName
               anchors.centerIn: parent
               text: modelData.name
-              color: isSelected ? "#c8f08d" : picker.textPrimary
+              color: isSelected ? Theme.accentBright : picker.textPrimary
               font.family: picker.mono
               font.pixelSize: 12
             }
@@ -172,7 +172,7 @@ Item {
               id: tabLabel
               anchors.centerIn: parent
               text: modelData.label
-              color: isActive ? "#c8f08d" : picker.textMuted
+              color: isActive ? Theme.accentBright : picker.textMuted
               font.family: picker.mono
               font.bold: isActive
               font.pixelSize: 12
@@ -198,7 +198,7 @@ Item {
       Rectangle {
         width: parent.width
         height: parent.height - y - 20
-        color: "#12150f"
+        color: Theme.deep
         border.color: picker.edge
         border.width: 1
         radius: 4
@@ -223,7 +223,7 @@ Item {
             Rectangle {
               anchors.fill: parent
               anchors.margins: 4
-              color: "#20241f"
+              color: Theme.well
               radius: 4
               border.color: cellMouse.containsMouse ? picker.accent : picker.edge
               border.width: 1
@@ -243,7 +243,7 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 20
-                color: "#cc171a17"
+                color: Theme.popoverBg
                 Text {
                   anchors.fill: parent
                   anchors.leftMargin: 6
