@@ -58,6 +58,10 @@ QtObject {
     }
   }
 
+  // Last applied raw JSON: reparsing identical content is skipped so the
+  // poll below only recolors on a real change.
+  property string lastJson: ""
+
   property FileView source: FileView {
     path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state"))
           + "/mango/theme.json"
@@ -65,11 +69,23 @@ QtObject {
     printErrors: false
     onFileChanged: this.reload()
     onTextChanged: {
+      if (this.text() === theme.lastJson)
+        return;
+      theme.lastJson = this.text();
       try {
         theme.applyColors(JSON.parse(this.text()));
       } catch (e) {
         // Malformed theme: keep the previous palette; the next apply repairs.
       }
     }
+  }
+
+  // A theme file created after shell start is not picked up by watchChanges
+  // (nothing to watch yet), so poll lightly and let the text guard dedupe.
+  property Timer poll: Timer {
+    interval: 2000
+    running: true
+    repeat: true
+    onTriggered: theme.source.reload()
   }
 }

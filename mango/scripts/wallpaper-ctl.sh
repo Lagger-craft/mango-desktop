@@ -122,32 +122,36 @@ cmd_theme() { # $1 = optional monitor
   fi
   [[ -f "$img" ]] || return 0
 
-  # --json hex prints every scheme; .dark holds the Material keys used below.
-  json=$(matugen image "$img" -m dark --json hex --quiet 2>/dev/null) || return 0
+  # --json hex prints the scheme for the requested mode directly under
+  # .colors (matugen 4.x; no dark/light nesting) plus a "mode" marker.
+  # --prefer avoids the interactive source-color picker on non-TTY callers.
+  json=$(matugen image "$img" -m dark --json hex --quiet --prefer saturation 2>/dev/null) || return 0
   [[ -n "$json" ]] || return 0
 
   # Shell tokens from Material keys; the alpha prefixes reproduce the
   # translucent island/popup surfaces. Fallbacks pin today's palette so a
   # schema drift in matugen degrades to the current look, never to garbage.
   tmp=$(theme_tmp)
+  # Real matugen 4.x shape: .colors.<key>.{dark,default}.color. Fallbacks pin
+  # today's palette so schema drift degrades to the current look, not garbage.
   if jq -c '
-    (try .colors.dark catch {}) as $c |
+    (try .colors catch {}) as $c |
+    def c($k): ($c[$k].dark.color // $c[$k].default.color // "");
     {
-      accent: ($c.primary // "#9bd45a"),
-      accentBorder: ("#59" + ($c.primary // "#9bd45a")[1:]),
-      panelBg: ("#b3" + ($c.background // "#171a17")[1:]),
-      popupBg: ("#f0" + ($c.surface_variant // "#171a17")[1:]),
-      surfaceSolid: ($c.background // "#171a17"),
-      hoverBg: ($c.surface_variant // "#20231e"),
-      hoverBorder: ($c.primary // "#9bd45a"),
-      outline: ($c.outline_variant // "#4a5a41"),
-      divider: ($c.outline_variant // "#485044"),
-      textPrimary: ($c.on_surface // "#e5e8dc"),
-      textSecondary: ($c.on_surface_variant // "#a5a99d"),
-      textIdle: ($c.secondary // "#c8d2c0"),
-      textDim: ($c.outline // "#5a6055"),
-      warning: ($c.tertiary // "#e0a044"),
-      critical: ($c.error // "#d94b43")
+      accent: (c("primary") | if . != "" then . else "#9bd45a" end),
+      accentBorder: (c("primary") | if . != "" then "#59" + .[1:] else "#599bd45a" end),
+      panelBg: (c("background") | if . != "" then "#b3" + .[1:] else "#b3171a17" end),
+      popupBg: (c("surface_variant") | if . != "" then "#f0" + .[1:] else "#f0171a17" end),
+      surface: (c("background") | if . != "" then . else "#171a17" end),
+      hover: (c("surface_variant") | if . != "" then . else "#20231e" end),
+      outline: (c("outline_variant") | if . != "" then . else "#4a5a41" end),
+      divider: (c("outline_variant") | if . != "" then . else "#485044" end),
+      textPrimary: (c("on_surface") | if . != "" then . else "#e5e8dc" end),
+      textSecondary: (c("on_surface_variant") | if . != "" then . else "#a5a99d" end),
+      textIdle: (c("secondary") | if . != "" then . else "#c8d2c0" end),
+      textDim: (c("outline") | if . != "" then . else "#5a6055" end),
+      warning: (c("tertiary") | if . != "" then . else "#e0a044" end),
+      critical: (c("error") | if . != "" then . else "#d94b43" end)
     }' <<< "$json" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
     mkdir -p -- "$state_dir"
     mv -f -- "$tmp" "$theme_file"
