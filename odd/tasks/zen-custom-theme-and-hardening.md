@@ -69,3 +69,18 @@
 - Firewall recommendation: plain `nftables` (`inet filter` table). `firewalld` is not installed and
   is not in the Arch repos used here; `ufw` is not installed either and is an iptables-legacy
   wrapper. `nftables.service` exists and is disabled, with a stock `/etc/nftables.conf`.
+
+### Verification (2026-10-19)
+
+- Independent verifier (gentle-ai-verify) over commits `a41f38a` and `28e1732`: S1–S7 all MET,
+  **0 blockers**. Probes ran in scratch directories outside the workspace.
+- One advisory, accepted and fixed: `find -mtime +3` floors the age to whole days, so pruning
+  happened at ~96h instead of 72h. The cleanup now uses `-mmin +4320` (exact 72h).
+- The verifier's probes are committed as `tests/verify-hardening.sh`
+  (`bash tests/verify-hardening.sh` → `all probes pass`).
+- Not verifiable headlessly: Zen actually applying the CSS (needs a GUI restart). The generated
+  `chrome/userChrome.css` and the `user.js` symlink were verified on disk.
+- Native review was not run: the clone-local receipt-driven development switch is **off**
+  (`gentle-ai review mode status` → `off (decided by clone_local)`), so delivery stays under
+  ordinary repository policy.
+

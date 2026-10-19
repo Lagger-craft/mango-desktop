@@ -10,15 +10,16 @@ set -euo pipefail
 
 readonly screenshots_dir="${SCREENSHOT_DIR:-$HOME/Pictures/Screenshots}"
 readonly max_age_days="${SCREENSHOT_MAX_AGE_DAYS:-3}"
+readonly max_age_minutes=$(( max_age_days * 1440 ))
 
 [[ -d "$screenshots_dir" ]] || exit 0
 
 # Owner-only: screenshots routinely contain private content.
 chmod 700 -- "$screenshots_dir" 2>/dev/null || true
 
-# -mtime +N means "strictly older than N*24h". Recursive, so a screenshot kept
-# in a subfolder expires on the same schedule.
-find "$screenshots_dir" -mindepth 1 -type f -mtime "+$max_age_days" -delete
+# Exact age in minutes (3 days = 4320 min). `find -mtime +N` floors the age to
+# whole days and would prune at ~96h instead of 72h, so minutes are used.
+find "$screenshots_dir" -mindepth 1 -type f -mmin "+$max_age_minutes" -delete
 
 # Drop directories left empty by the prune.
 find "$screenshots_dir" -mindepth 1 -type d -empty -delete 2>/dev/null || true

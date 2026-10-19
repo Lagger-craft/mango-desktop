@@ -275,6 +275,7 @@ apply only while this profile is running.
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
 bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-theme.sh ./mango/scripts/screenshot-cleanup.sh
+bash ./tests/verify-hardening.sh
 ./install.sh --dry-run
 unshare -rn nft -c -f ./nftables/nftables.conf
 git diff --check
