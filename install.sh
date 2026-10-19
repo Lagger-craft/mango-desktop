@@ -26,6 +26,7 @@ REPO_PKGS=(
   matugen      # Material-You palette from the applied wallpaper
   grim         # screenshots
   slurp        # region selection
+  nftables     # host firewall ruleset (see nftables/nftables.conf)
   firefox      # default browser
   chromium     # fallback browser (Super+Shift+W)
   xdg-utils    # xdg-settings default-browser handling
@@ -123,6 +124,8 @@ if [[ "$MODE" == uninstall ]]; then
   remove_link "$HOME/.config/vesktop"
   remove_link "$HOME/.config/fastfetch"
   remove_link "$HOME/.zshrc"
+  remove_link "$HOME/.config/systemd/user/screenshot-cleanup.service"
+  remove_link "$HOME/.config/systemd/user/screenshot-cleanup.timer"
   echo "For the rest (wallpaper process, wallpaper state, XDG browser), see README > Rollback."
   exit 0
 fi
@@ -166,9 +169,17 @@ link_config "$REPO_DIR/mango" "$HOME/.config/mango"
 link_config "$REPO_DIR/vesktop" "$HOME/.config/vesktop"
 link_config "$REPO_DIR/zsh/.zshrc" "$HOME/.zshrc"
 link_config "$REPO_DIR/fastfetch" "$HOME/.config/fastfetch"
+link_config "$REPO_DIR/systemd/screenshot-cleanup.service" "$HOME/.config/systemd/user/screenshot-cleanup.service"
+link_config "$REPO_DIR/systemd/screenshot-cleanup.timer" "$HOME/.config/systemd/user/screenshot-cleanup.timer"
 
 echo "Preparing user state:"
 run mkdir -p "$HOME/Pictures/Wallpapers"
+
+# Screenshots can hold private content: keep the directory owner-only.
+if [[ -d "$HOME/Pictures/Screenshots" ]]; then
+  run chmod 700 "$HOME/Pictures/Screenshots"
+  ((DRY_RUN)) || note "screenshots directory set to owner-only (0700)"
+fi
 
 # Seed the shipped default only when the user has no background of their own;
 # an existing image is never overwritten. Without at least one image,
@@ -199,6 +210,18 @@ if command -v mango >/dev/null 2>&1; then
   ((DRY_RUN)) || note "Mango config parses cleanly"
 else
   warn "mango binary not available yet; config not parsed"
+fi
+
+# Zen browser: write the userChrome.css that matches the current palette and
+# link the pinned prefs (custom CSS + telemetry/privacy) into its profile.
+if [[ -x "$REPO_DIR/mango/scripts/zen-theme.sh" ]]; then
+  run "$REPO_DIR/mango/scripts/zen-theme.sh"
+fi
+
+# Daily screenshot prune (files older than 3 days).
+if command -v systemctl >/dev/null 2>&1; then
+  run systemctl --user daemon-reload
+  run systemctl --user enable --now screenshot-cleanup.timer
 fi
 
 if ((SKIPPED)); then

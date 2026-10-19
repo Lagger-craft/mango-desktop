@@ -10,7 +10,10 @@ if [[ -z $geometry ]]; then
 fi
 
 screenshots_dir="$HOME/Pictures/Screenshots"
+# Owner-only: screenshots routinely contain private content. mkdir -m only
+# applies to directories it actually creates, so the mode is set explicitly.
 mkdir -p -- "$screenshots_dir"
+chmod 700 -- "$screenshots_dir"
 
 timestamp=$(date +%Y%m%d-%H%M%S-%N)
 output_file="$screenshots_dir/$timestamp.png"

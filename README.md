@@ -202,6 +202,55 @@ overwritten. Once you pick your own image with `Super+Alt+W` the default is
 simply another entry in the list; delete it from `~/Pictures/Wallpapers` to
 remove it.
 
+## Zen Browser theme
+
+Zen Browser (`zen-browser-bin`) is themed from the same Material palette the
+shell uses. `mango/scripts/zen-theme.sh` reads
+`${XDG_STATE_HOME:-~/.local/state}/mango/theme.json` — the file matugen writes
+from the current wallpaper — and renders it into the active profile's
+`chrome/userChrome.css`, overriding Zen's design tokens (`--zen-primary-color`,
+`--zen-main-browser-background`, `--zen-navigator-toolbox-background`,
+`--zen-urlbar-background`, `--zen-dialog-background`, borders and accent).
+Because the palette is regenerated on every wallpaper change, the browser
+follows the wallpaper automatically.
+
+- The template lives in `zen/userChrome.css.template`; the generated CSS is
+  overwritten on each wallpaper change, so edit the template, not the profile
+  file.
+- `zen/user.js` is symlinked into the profile and applied on every browser
+  start. It enables `toolkit.legacyUserProfileCustomizations.stylesheets`
+  (required for `userChrome.css`) and pins telemetry off
+  (`toolkit.telemetry.enabled`, `toolkit.telemetry.unified`,
+  `datareporting.policy.dataSubmissionEnabled`, `datareporting.healthreport.uploadEnabled`),
+  HTTPS-only mode and strict tracking protection.
+- Force a refresh without changing the wallpaper:
+  `"$HOME/mango-desktop/mango/scripts/zen-theme.sh"`.
+
+## Screenshots
+
+`Super+Shift+S` grabs a region into `~/Pictures/Screenshots`. The directory is
+owner-only (`0700`) because screenshots routinely contain private content, and
+a daily systemd user timer prunes files older than 3 days:
+
+```sh
+systemctl --user list-timers screenshot-cleanup.timer
+```
+
+The prune only ever touches `~/Pictures/Screenshots`; the wallpaper directory
+that matugen samples for the palette is never modified.
+
+## Firewall
+
+The host firewall is plain `nftables` (`nftables/nftables.conf`): default-deny
+inbound, allow all outbound, with explicit allowances for loopback, established
+traffic, ICMP/ICMPv6, DHCP, mDNS and Steam LAN. Install it with:
+
+```sh
+sudo cp "$HOME/mango-desktop/nftables/nftables.conf" /etc/nftables.conf
+sudo systemctl enable --now nftables.service
+sudo nft list ruleset
+```
+
 ## Rollback
 
 Log out with Super+Shift+E, or exit the compositor normally. Stop only the
@@ -216,7 +265,8 @@ The per-monitor state map and renderer PIDs are stored under
 only if you also want to forget the chosen wallpapers. `./install.sh --uninstall` deliberately leaves `~/Pictures/Wallpapers`
 alone, so a seeded `default.png` stays behind until you delete it yourself.
 This profile links `~/.config/mango`,
-`~/.config/vesktop`, and `~/.zshrc`, and sets Firefox as the XDG default;`./install.sh --uninstall` reverses exactly those links, while the Niri config
+`~/.config/vesktop`, `~/.zshrc` and the two `screenshot-cleanup` systemd user
+units, and sets Firefox as the XDG default;`./install.sh --uninstall` reverses exactly those links, while the Niri config
 and `~/.config/quickshell` are never touched. Mango's explicit output rules
 apply only while this profile is running.
 
@@ -224,8 +274,9 @@ apply only while this profile is running.
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
-bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh
+bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-theme.sh ./mango/scripts/screenshot-cleanup.sh
 ./install.sh --dry-run
+unshare -rn nft -c -f ./nftables/nftables.conf
 git diff --check
 ```
 

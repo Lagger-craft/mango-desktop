@@ -1,0 +1,6 @@
+[Unit]
+Description=Prune screenshots older than 3 days
+
+[Service]
+Type=oneshot
+ExecStart=%h/mango-desktop/mango/scripts/screenshot-cleanup.sh
