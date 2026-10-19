@@ -38,6 +38,34 @@ Item {
 
   Keys.onEscapePressed: pickerState.close()
 
+  // Enter: fade + rise; exit: fade while the host window stays mapped
+  // (pickerState.closing, see shell.qml). Backdrop and card animate together
+  // as one root-level animation.
+  opacity: 1
+  transform: Translate { id: pickerShift; y: 0 }
+  Connections {
+    target: pickerState
+    function onActiveChanged() {
+      if (pickerState.active)
+        pickerEnter.restart();
+    }
+    function onClosingChanged() {
+      if (pickerState.closing)
+        pickerExit.restart();
+      else
+        picker.opacity = 1; // reset before the next enter
+    }
+  }
+  ParallelAnimation {
+    id: pickerEnter
+    NumberAnimation { target: picker; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+    NumberAnimation { target: pickerShift; property: "y"; from: 14; to: 0; duration: 200; easing.type: Easing.OutCubic }
+  }
+  SequentialAnimation {
+    id: pickerExit
+    NumberAnimation { target: picker; property: "opacity"; from: 1; to: 0; duration: 180; easing.type: Easing.InCubic }
+  }
+
   // Dim backdrop; click anywhere to dismiss.
   Rectangle {
     anchors.fill: parent

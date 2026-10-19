@@ -134,7 +134,28 @@ Item {
       memFile.reload();
       uptimeFile.reload();
       sysTimer.restart();
+      dashboardEnter.restart();
     }
+    function onClosingChanged() {
+      if (dashboard.dashboardState.closing)
+        dashboardExit.restart();
+      else
+        dashboard.opacity = 1; // reset before the next enter
+    }
+  }
+
+  // Enter: fade + rise of the whole overlay; exit: fade (the host window
+  // stays mapped during dashboard.closing, see shell.qml).
+  opacity: 1
+  transform: Translate { id: dashShift; y: 0 }
+  ParallelAnimation {
+    id: dashboardEnter
+    NumberAnimation { target: dashboard; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+    NumberAnimation { target: dashShift; property: "y"; from: 14; to: 0; duration: 200; easing.type: Easing.OutCubic }
+  }
+  SequentialAnimation {
+    id: dashboardExit
+    NumberAnimation { target: dashboard; property: "opacity"; from: 1; to: 0; duration: 180; easing.type: Easing.InCubic }
   }
 
   // ---- MPRIS --------------------------------------------------------------

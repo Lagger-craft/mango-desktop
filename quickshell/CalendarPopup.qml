@@ -73,14 +73,27 @@ PopupWindow {
     currentDate = clock.date;
     viewMonth = currentDate.getMonth();
     viewYear = currentDate.getFullYear();
+    if (visible)
+      chromeEnter.restart();
   }
 
+  // Enter animation on the chrome: slide down + fade (S1). Exits are
+  // instant: the host window hides with `visible` and nothing delays it.
   Rectangle {
+    id: chrome
     anchors.fill: parent
     radius: 10
     color: Theme.popupBg
     border.width: 1
     border.color: Theme.outline
+    opacity: 0
+    transform: Translate { id: chromeShift; y: 0 }
+
+    ParallelAnimation {
+      id: chromeEnter
+      NumberAnimation { target: chrome; property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.OutCubic }
+      NumberAnimation { target: chromeShift; property: "y"; from: -10; to: 0; duration: 170; easing.type: Easing.OutCubic }
+    }
 
     Column {
       id: calendarBody

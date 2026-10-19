@@ -108,11 +108,29 @@ ShellRoot {
       command: []
     }
 
-    function close() { active = false; }
+    // closing/fadingMonitor keep the picker window alive for its exit fade.
+    function close() {
+      if (!active)
+        return;
+      active = false;
+      fadingMonitor = activeMonitor;
+      closing = true;
+      pickerClosingTimer.restart();
+    }
+
+    property bool closing: false
+    property string fadingMonitor: ""
+
+    Timer {
+      id: pickerClosingTimer
+      interval: 190
+      onTriggered: picker.closing = false
+    }
 
     function reload() {
       monitorQuery.running = true;
       listProcess.running = true;
+      closing = false;
       active = true;
     }
 
@@ -130,10 +148,13 @@ ShellRoot {
   // Dashboard overlay state (S2/S3): toggled by the ZONE label click or the
   // `quickshell ipc call dashboard toggle` bind; opens on the focused
   // monitor. The full-screen overlay lives in the per-screen Variants below.
+  // closing/fadingMonitor keep the overlay window alive for its exit fade.
   Scope {
     id: dashboard
     property bool active: false
     property string activeMonitor: ""
+    property bool closing: false
+    property string fadingMonitor: ""
 
     IpcHandler {
       target: "dashboard"
@@ -162,10 +183,24 @@ ShellRoot {
       }
     }
 
-    function close() { active = false; }
+    function close() {
+      if (!active)
+        return;
+      active = false;
+      fadingMonitor = activeMonitor;
+      closing = true;
+      closingTimer.restart();
+    }
+
+    Timer {
+      id: closingTimer
+      interval: 190
+      onTriggered: dashboard.closing = false
+    }
 
     function toggle() {
-      if (active) { active = false; return; }
+      if (active) { close(); return; }
+      closing = false;
       dashboardMonitorQuery.running = true;
       active = true;
     }
@@ -468,7 +503,8 @@ ShellRoot {
         id: pickerWindow
         required property var modelData
         screen: modelData
-        visible: picker.active && modelData.name === picker.activeMonitor
+        visible: (picker.active && modelData.name === picker.activeMonitor)
+              || (picker.closing && modelData.name === picker.fadingMonitor)
         color: "transparent"
         anchors {
           top: true
@@ -489,7 +525,9 @@ ShellRoot {
   }
 
   // Dashboard overlay: one dimmed full-screen window per screen, shown only
-  // on the focused monitor while the dashboard is toggled on (S3).
+  // on the focused monitor while the dashboard is toggled on (S3). The brief
+  // non-active visibility during dashboard.closing keeps the window mapped
+  // while the exit fade runs.
   Variants {
     model: Quickshell.screens
 
@@ -498,7 +536,8 @@ ShellRoot {
         id: dashboardWindow
         required property var modelData
         screen: modelData
-        visible: dashboard.active && modelData.name === dashboard.activeMonitor
+        visible: (dashboard.active && modelData.name === dashboard.activeMonitor)
+              || (dashboard.closing && modelData.name === dashboard.fadingMonitor)
         color: "transparent"
         anchors {
           top: true

@@ -17,12 +17,23 @@ PopupWindow {
   implicitHeight: 64
   color: "transparent"
 
+  onVisibleChanged: if (visible)
+    osdEnter.restart()
+
   Rectangle {
     anchors.fill: parent
     radius: 8
     color: Theme.popupBg
     border.width: 1
     border.color: osdState.muted ? Theme.warning : Theme.accentDim
+    opacity: 0
+    transform: Translate { id: osdShift; y: 0 }
+
+    ParallelAnimation {
+      id: osdEnter
+      NumberAnimation { target: parent; property: "opacity"; from: 0; to: 1; duration: 160; easing.type: Easing.OutCubic }
+      NumberAnimation { target: osdShift; property: "y"; from: 10; to: 0; duration: 160; easing.type: Easing.OutCubic }
+    }
 
     Row {
       anchors.fill: parent
