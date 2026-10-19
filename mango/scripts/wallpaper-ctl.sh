@@ -136,22 +136,39 @@ cmd_theme() { # $1 = optional monitor
   # today's palette so schema drift degrades to the current look, not garbage.
   if jq -c '
     (try .colors catch {}) as $c |
+    (try .palettes catch {}) as $p |
     def c($k): ($c[$k].dark.color // $c[$k].default.color // "");
+    def p($k; $n): ($p[$k][$n].color // "");
+    def orf($v; $f): (if $v != "" then $v else $f end);
     {
-      accent: (c("primary") | if . != "" then . else "#9bd45a" end),
-      accentBorder: (c("primary") | if . != "" then "#59" + .[1:] else "#599bd45a" end),
-      panelBg: (c("background") | if . != "" then "#b3" + .[1:] else "#b3171a17" end),
-      popupBg: (c("surface_variant") | if . != "" then "#f0" + .[1:] else "#f0171a17" end),
-      surface: (c("background") | if . != "" then . else "#171a17" end),
-      hover: (c("surface_variant") | if . != "" then . else "#20231e" end),
-      outline: (c("outline_variant") | if . != "" then . else "#4a5a41" end),
-      divider: (c("outline_variant") | if . != "" then . else "#485044" end),
-      textPrimary: (c("on_surface") | if . != "" then . else "#e5e8dc" end),
-      textSecondary: (c("on_surface_variant") | if . != "" then . else "#a5a99d" end),
-      textIdle: (c("secondary") | if . != "" then . else "#c8d2c0" end),
-      textDim: (c("outline") | if . != "" then . else "#5a6055" end),
-      warning: (c("tertiary") | if . != "" then . else "#e0a044" end),
-      critical: (c("error") | if . != "" then . else "#d94b43" end)
+      accent: orf(c("primary"); "#9bd45a"),
+      accentBright: orf(p("primary"; "90"); "#c8f08d"),
+      accentDim: orf(c("primary_container"); "#3d5233"),
+      accentBorder: orf(c("primary") | if . != "" then "#59" + .[1:] else "" end; "#599bd45a"),
+      selectedBg: orf(c("primary_container"); "#34432b"),
+      panelBg: orf(c("background") | if . != "" then "#b3" + .[1:] else "" end; "#b3171a17"),
+      popoverBg: orf(c("background") | if . != "" then "#cc" + .[1:] else "" end; "#cc171a17"),
+      popupBg: orf(c("surface_variant") | if . != "" then "#f0" + .[1:] else "" end; "#f0171a17"),
+      overlayBg: orf(c("background") | if . != "" then "#d9" + .[1:] else "" end; "#d9141714"),
+      surface: orf(c("background"); "#171a17"),
+      surfaceUp: orf(c("surface_container_low"); "#1b1f1a"),
+      panel: orf(c("surface_container"); "#222722"),
+      panelTint: orf(c("surface_container_high"); "#282d26"),
+      well: orf(c("surface_container_highest"); "#20241f"),
+      deep: orf(c("surface_container_lowest"); "#12150f"),
+      deeper: orf(c("scrim"); "#0c0e0c"),
+      hover: orf(c("surface_container_high"); "#2a3126"),
+      buttonBg: orf(c("surface_container_low"); "#20231e"),
+      buttonHoverBg: orf(c("secondary_container"); "#402d29"),
+      outline: orf(c("outline_variant"); "#4a5a41"),
+      divider: orf(c("outline_variant"); "#485044"),
+      textPrimary: orf(c("on_surface"); "#e5e8dc"),
+      textSecondary: orf(c("on_surface_variant"); "#a5a99d"),
+      textIdle: orf(c("secondary"); "#c8d2c0"),
+      textDim: orf(c("outline"); "#5a6055"),
+      warning: orf(c("tertiary"); "#e0a044"),
+      critical: orf(c("error"); "#d94b43"),
+      criticalSoft: orf(p("error"; "60"); "#ec8064")
     }' <<< "$json" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
     mkdir -p -- "$state_dir"
     mv -f -- "$tmp" "$theme_file"
