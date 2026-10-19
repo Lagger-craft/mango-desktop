@@ -21,6 +21,7 @@ PopupWindow {
     osdEnter.restart()
 
   Rectangle {
+    id: osdChrome
     anchors.fill: parent
     radius: 8
     color: Theme.popupBg
@@ -31,7 +32,7 @@ PopupWindow {
 
     ParallelAnimation {
       id: osdEnter
-      NumberAnimation { target: parent; property: "opacity"; from: 0; to: 1; duration: 160; easing.type: Easing.OutCubic }
+      NumberAnimation { target: osdChrome; property: "opacity"; from: 0; to: 1; duration: 160; easing.type: Easing.OutCubic }
       NumberAnimation { target: osdShift; property: "y"; from: 10; to: 0; duration: 160; easing.type: Easing.OutCubic }
     }
 
