@@ -7,10 +7,12 @@ import Quickshell.Services.Mpris
 // Full-screen dashboard overlay, mirroring the WallpaperPicker structure
 // (dim backdrop + centered card). All state lives in the shell's `dashboard`
 // Scope, passed by reference as dashboardState: `active` says when to show,
-// `close()` dismisses. The notifications card consumes the shared Dunst
+// `close()` dismisses. The notifications card consumes the shared
+// NotificationDaemon singleton (no dunst anywhere — README).
 // singleton — dunst stays the sole notification daemon (README). Nothing
 // here touches the network: artwork is local-file-only and the system card
-// reads procfs.
+// reads procfs. The notifications card consumes the shared NotificationDaemon
+// singleton — no dunst anywhere (README).
 Item {
   id: dashboard
   required property var dashboardState // Scope: property bool active, function close()
@@ -105,28 +107,35 @@ Item {
   }
 
   Timer {
-    interval: 2000
+    id: sysTimer
+    interval: 500
     running: dashboard.dashboardState.active
     repeat: true
+    property int ticks: 0
     onTriggered: {
+      ticks++;
       statFile.reload(); // fresh busy/total delta for the CPU %
       memFile.reload();
-      uptimeFile.reload();
-      dunstRefresh.restart(); // dunst pool sizes, shared with the bell
+      if (ticks % 4 === 0) // uptime changes too slowly to churn every tick
+        uptimeFile.reload();
+      // Notification state is live on the singleton; no dunst polling here.
     }
   }
 
-  // Refresh dunst counts/history when the dashboard opens (the FileViews
-  // auto-load at creation, so only dunst needs the explicit kick).
-  Timer {
-    id: dunstRefresh
-    onTriggered: { Dunst.refreshCounts(); Dunst.refreshHistory(); }
-  }
   Connections {
     target: dashboard.dashboardState
     function onActiveChanged() {
-      if (dashboard.dashboardState.active)
-        dunstRefresh.restart();
+      if (!dashboard.dashboardState.active)
+        return;
+      // The FileViews auto-loaded once at shell creation, so lastBusy/
+      // lastTotal are hours stale: drop the old sample and re-read now so
+      // the first visible CPU% is a real 500 ms delta, not a day-average.
+      dashboard.lastBusy = -1;
+      dashboard.lastTotal = -1;
+      statFile.reload();
+      memFile.reload();
+      uptimeFile.reload();
+      sysTimer.restart();
     }
   }
 
@@ -433,11 +442,12 @@ Item {
       anchors.rightMargin: 16
       anchors.bottomMargin: 16
 
-      // -- Notifications: dunst history + live counts (Dunst singleton only).
+      // -- Notifications: daemon history + live counts (NotificationDaemon
+      // only, same singleton the bell reads).
       Card {
         title: "NOTIFICATIONS"
-        meta: Dunst.historyCount + " history"
-            + (Dunst.pending > 0 ? "  ·  " + Dunst.pending + " active" : "")
+        meta: NotificationDaemon.historyCount + " history"
+            + (NotificationDaemon.pending > 0 ? "  ·  " + NotificationDaemon.pending + " active" : "")
         x: 0
         y: 0
         width: (parent.width - 12) / 2
@@ -448,7 +458,7 @@ Item {
 
           ActionButton {
             label: "CLEAR HISTORY"
-            action: () => Dunst.clearHistory()
+            action: () => NotificationDaemon.clearHistory()
           }
           Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -479,7 +489,7 @@ Item {
             spacing: 4
 
             Text {
-              visible: Dunst.history.length === 0
+              visible: NotificationDaemon.history.length === 0
               width: notifColumn.width
               text: "No notifications in history"
               color: dashboard.textDim
@@ -490,7 +500,7 @@ Item {
             }
 
             Repeater {
-              model: Dunst.history
+              model: NotificationDaemon.history
 
               delegate: Rectangle {
                 id: entry
@@ -520,7 +530,7 @@ Item {
                       height: 6
                       radius: 3
                       anchors.verticalCenter: parent.verticalCenter
-                      color: Dunst.urgencyColor(entry.modelData.urgency)
+                      color: NotificationDaemon.urgencyColor(entry.modelData.urgency)
                     }
 
                     Text {
@@ -552,7 +562,7 @@ Item {
                   anchors.fill: parent
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: Dunst.reopenEntry(entry.modelData.id)
+                  onClicked: NotificationDaemon.reshowEntry(entry.modelData.id)
                 }
 
                 ToolTip.visible: entryMouse.containsMouse

@@ -2,17 +2,15 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 
-// Notification center bell + review popup. Dunst (the shared singleton)
-// owns every dunstctl call; this file is only the view, so dunst stays the
-// only notification daemon (README) and its counts/history are shared with
-// the dashboard's notifications card instead of being fetched twice.
+// Notification center bell + review popup. NotificationDaemon (the shared
+// singleton) is the sole notification daemon; this file is only the view,
+// so counts/history are live bindings on the singleton instead of dunstctl
+// polling. The dashboard's notifications card consumes the same singleton.
 Item {
   id: notifications
   required property var panelWindow // PanelWindow the popup anchors to
   width: 26
   height: 30
-
-  Component.onCompleted: Dunst.refreshCounts()
 
   // Bell glyph (Nerd Fonts md-bell, U+F009A). The default "monospace"
   // resolves to Noto Sans Mono here, which has no patched icons, so the
@@ -22,15 +20,15 @@ Item {
     text: "󰂚"
     font.family: "JetBrainsMono Nerd Font Mono"
     font.pixelSize: 16
-    color: bellMouse.containsMouse || Dunst.pending > 0
+    color: bellMouse.containsMouse || NotificationDaemon.pending > 0
          ? "#e0a044" : "#c8d2c0"
     Behavior on color { ColorAnimation { duration: 140 } }
   }
 
-  // Badge: only for dunst's live pools (waiting/displayed), never for the
-  // ever-growing history, so the icon does not carry a permanent counter.
+  // Badge: only for live toasts, never for the bounded history, so the icon
+  // does not carry a permanent counter.
   Rectangle {
-    visible: Dunst.pending > 0
+    visible: NotificationDaemon.pending > 0
     anchors {
       top: parent.top
       right: parent.right
@@ -47,7 +45,7 @@ Item {
     Text {
       id: badgeText
       anchors.centerIn: parent
-      text: Dunst.pending > 99 ? "99+" : String(Dunst.pending)
+      text: NotificationDaemon.pending > 99 ? "99+" : String(NotificationDaemon.pending)
       color: "#171a17"
       font.pixelSize: 9
       font.bold: true
@@ -64,8 +62,6 @@ Item {
         popup.visible = false;
         return;
       }
-      Dunst.refreshCounts();
-      Dunst.refreshHistory();
       const point = panelWindow.mapFromItem(bellMouse, mouse.x, mouse.y);
       popup.anchor.rect.x = Math.max(8, Math.min(point.x - popup.width / 2,
                                                   panelWindow.width - popup.width - 8));
@@ -75,16 +71,8 @@ Item {
   }
 
   ToolTip.visible: bellMouse.containsMouse && !popup.visible
-  ToolTip.text: Dunst.historyCount + " in history"
+  ToolTip.text: NotificationDaemon.historyCount + " in history"
   ToolTip.delay: 500
-
-  // Keep counts and list current while the review panel is open.
-  Timer {
-    interval: 3000
-    running: popup.visible
-    repeat: true
-    onTriggered: { Dunst.refreshCounts(); Dunst.refreshHistory(); }
-  }
 
   component ActionButton: Rectangle {
     id: actionBtn
@@ -125,6 +113,24 @@ Item {
     implicitHeight: popupBody.implicitHeight + 16
     color: "transparent"
 
+    // First-open size bug (S6): on some monitors the popup maps with a stale
+    // geometry (wrong size/anchor) and only the second open looks right.
+    // Re-assert geometry right after the window is mapped via callLater,
+    // which lands after the platform surface knows the monitor's scale.
+    onVisibleChanged: {
+      if (!visible)
+        return;
+      Qt.callLater(popup.reassertGeometry);
+    }
+
+    function reassertGeometry() {
+      implicitWidth = 340;
+      implicitHeight = popupBody.implicitHeight + 16;
+      anchor.rect.y = panelWindow.implicitHeight;
+      anchor.rect.x = Math.max(8, Math.min(anchor.rect.x,
+                                           panelWindow.width - implicitWidth - 8));
+    }
+
     Rectangle {
       anchors.fill: parent
       radius: 10
@@ -139,7 +145,7 @@ Item {
         width: parent.width - 16
         spacing: 6
 
-        // Header: title + live dunst counts.
+        // Header: title + live counts.
         Item {
           width: popupBody.width
           height: 18
@@ -157,8 +163,10 @@ Item {
           Text {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: Dunst.historyCount + " history"
-                 + (Dunst.pending > 0 ? "  ·  " + Dunst.pending + " active" : "")
+            text: NotificationDaemon.historyCount + " history"
+                 + (NotificationDaemon.pending > 0
+                    ? "  ·  " + NotificationDaemon.pending + " active" : "")
+                 + (NotificationDaemon.dnd ? "  ·  DND" : "")
             color: "#5a6055"
             font.pixelSize: 10
           }
@@ -171,15 +179,15 @@ Item {
 
           ActionButton {
             label: "RESHOW LATEST"
-            action: () => Dunst.reopenEntry()
+            action: () => NotificationDaemon.reshowEntry()
           }
           ActionButton {
             label: "CLOSE DISPLAYED"
-            action: () => Dunst.closeAllDisplayed()
+            action: () => NotificationDaemon.closeAllDisplayed()
           }
           ActionButton {
             label: "CLEAR HISTORY"
-            action: () => Dunst.clearHistory()
+            action: () => NotificationDaemon.clearHistory()
           }
         }
 
@@ -203,7 +211,7 @@ Item {
             spacing: 4
 
             Text {
-              visible: Dunst.history.length === 0
+              visible: NotificationDaemon.history.length === 0
               width: listColumn.width
               text: "No notifications in history"
               color: "#5a6055"
@@ -214,7 +222,7 @@ Item {
             }
 
             Repeater {
-              model: Dunst.history
+              model: NotificationDaemon.history
 
               delegate: Rectangle {
                 id: entry
@@ -244,7 +252,7 @@ Item {
                       height: 6
                       radius: 3
                       anchors.verticalCenter: parent.verticalCenter
-                      color: Dunst.urgencyColor(entry.modelData.urgency)
+                      color: NotificationDaemon.urgencyColor(entry.modelData.urgency)
                     }
 
                     Text {
@@ -274,7 +282,7 @@ Item {
                   anchors.fill: parent
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
-                  onClicked: Dunst.reopenEntry(entry.modelData.id)
+                  onClicked: NotificationDaemon.reshowEntry(entry.modelData.id)
                 }
 
                 ToolTip.visible: entryMouse.containsMouse

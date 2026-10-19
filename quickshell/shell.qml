@@ -181,7 +181,9 @@ ShellRoot {
     // coordinates; each screen's popup applies them when it becomes visible.
     // Anchors must not be passed by cross-Variants id here: ids of sibling
     // delegate Components do not resolve from another delegate's JS.
-    property real clickX: 0    function toggleAt(screenName, xOnPanel) {
+    property real clickX: 0
+
+    function toggleAt(screenName, xOnPanel) {
       targetMonitor = screenName;
       clickX = xOnPanel;
       if (active) { active = false; return; }
@@ -230,6 +232,12 @@ ShellRoot {
         VolumeOsd {
           panelWindow: panel
           osdState: osd
+        }
+
+        // Notification toasts: popup under the bar's right edge, only on the
+        // screen the daemon's focused-monitor query reported (T1).
+        Toasts {
+          panelWindow: panel
         }
 
         // The bar renders as three floating islands instead of one solid
@@ -386,6 +394,14 @@ ShellRoot {
         // down by 44px (stacked exclusive zones).
         exclusiveZone: 0
 
+        // Mango shifts same-edge sibling layer surfaces below the bar's
+        // exclusive zone, so this empty 44px host lands in the strip right
+        // under the bar. Without an explicit empty region it intercepts
+        // clicks there even with the calendar closed (browsers couldn't be
+        // clicked at the top of their window). Click-through everywhere;
+        // the visible PopupWindow is a separate surface and keeps its input.
+        mask: Region {}
+
         property bool isTarget: modelData.name === calendarState.targetMonitor
 
         CalendarPopup {
@@ -394,12 +410,14 @@ ShellRoot {
 
           // Anchor application: a mouse click wrote exact coordinates
           // (calendarState.clickX); an IPC open falls back to centered
-          // under the clock island (centered on the bar) at the bar's
-          // bottom edge.
+          // under the clock island (centered on the bar) flush with the
+          // bar's bottom edge: Mango offsets this host window below the
+          // bar's exclusive zone, so the host's top IS the bar's bottom;
+          // keep the popup glued to it (no extra 44px gap).
           onVisibleChanged: {
             if (!visible)
               return;
-            anchor.rect.y = calendarWindow.implicitHeight;
+            anchor.rect.y = 0;
             if (calendarState.clickX > 0) {
               anchor.rect.x = Math.max(8, Math.min(calendarState.clickX - width / 2, calendarWindow.width - width - 8));
               calendarState.clickX = 0;
