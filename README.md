@@ -280,6 +280,69 @@ systemctl --user list-timers screenshot-cleanup.timer
 The prune only ever touches `~/Pictures/Screenshots`; the wallpaper directory
 that matugen samples for the palette is never modified.
 
+## MangoHud
+
+MangoHud is the in-game performance overlay. It is an overlay for the running
+application, not a desktop-wide monitor: it draws inside the Vulkan/OpenGL
+window of the app it is attached to. The shell's own dashboard keeps showing
+system-wide CPU usage.
+
+The configuration lives in `mango/mangohud/MangoHud.conf` and is linked to
+`~/.config/MangoHud/MangoHud.conf` by the installer. It reuses the shell
+palette (green accents over a deep charcoal surface) and is tuned for an
+RX 7600 (Navi 33): GPU load, core and memory clocks, edge/junction/memory
+temperatures, package power and VRAM usage out of 8 GB, aggregated
+CPU load/frequency/temperature, system RAM, average and 1% low FPS,
+frametime with its graph, the active FPS limit and the GPU throttling reason.
+Per-core CPU rows are disabled (`core_load=0`, `core_bars=0`), so a 32-core
+CPU does not turn the overlay into a wall of bars.
+
+Read it like this: GPU at 99% with CPU at 30% means the game is GPU-bound and
+the frame rate is capped by the card; CPU pinned at 100% with the GPU idle
+means it is CPU-bound (draw calls, simulation); `THROTTLED` next to the
+frametime graph means the card is power- or temperature-limited.
+
+The three temperatures on the GPU row are not redundant: the plain value is
+the edge temperature, the one marked `Jnc` is the junction (hotspot) and the
+one on the VRAM row is the memory junction. All three are exposed by the
+RX 7600 and they tell different stories — a card can sit at 70 °C edge while
+its memory is already at 80 °C.
+
+The graph at the bottom of the overlay is the frametime history in
+milliseconds (green line, with `min`/`max` for the window shown) and the yellow
+line marks the frames that were power-throttled. `throttling_status_graph`
+draws that reason on the graph itself, next to the `throttling_status` text
+in the frames column.
+
+MangoHud can also draw proper charts with numbered axes through the
+`graphs=` option, for example `graphs=gpu_load,cpu_load,gpu_temp`. It is off
+by default because the overlay already reads well without it.
+
+For Steam games, set the launch options of each game to:
+
+```
+mangohud %command%
+```
+
+With gamescope, keep the overlay inside the compositor's own layer:
+
+```
+gamescope -- mangohud %command%
+```
+
+Inside the app:
+
+- `Shift_R+F12` toggles the HUD on and off.
+- `Shift_R+F11` moves the HUD to another corner.
+- `Shift_L+F4` reloads `MangoHud.conf` without restarting the app, so palette
+  tweaks show up immediately.
+
+For anything outside Steam, launch the app through the overlay directly:
+
+```sh
+mangohud firefox
+```
+
 ## Firewall
 
 The host firewall is plain `nftables` (`nftables/nftables.conf`): default-deny

@@ -31,6 +31,7 @@ REPO_PKGS=(
   chromium     # fallback browser (Super+Shift+W)
   xdg-utils    # xdg-settings default-browser handling
   fastfetch    # system info in the terminal
+  mangohud     # in-game performance overlay
 )
 
 # AUR-only packages: no official-repo package provides these.
@@ -123,6 +124,7 @@ if [[ "$MODE" == uninstall ]]; then
   remove_link "$HOME/.config/mango"
   remove_link "$HOME/.config/vesktop"
   remove_link "$HOME/.config/fastfetch"
+  remove_link "$HOME/.config/MangoHud/MangoHud.conf"
   remove_link "$HOME/.zshrc"
   remove_link "$HOME/.config/systemd/user/screenshot-cleanup.service"
   remove_link "$HOME/.config/systemd/user/screenshot-cleanup.timer"
@@ -169,6 +171,7 @@ link_config "$REPO_DIR/mango" "$HOME/.config/mango"
 link_config "$REPO_DIR/vesktop" "$HOME/.config/vesktop"
 link_config "$REPO_DIR/zsh/.zshrc" "$HOME/.zshrc"
 link_config "$REPO_DIR/fastfetch" "$HOME/.config/fastfetch"
+link_config "$REPO_DIR/mango/mangohud/MangoHud.conf" "$HOME/.config/MangoHud/MangoHud.conf"
 link_config "$REPO_DIR/systemd/screenshot-cleanup.service" "$HOME/.config/systemd/user/screenshot-cleanup.service"
 link_config "$REPO_DIR/systemd/screenshot-cleanup.timer" "$HOME/.config/systemd/user/screenshot-cleanup.timer"
 
