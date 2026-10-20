@@ -117,14 +117,27 @@ browser rewrites `prefs.js` from memory when it exits and would drop the injecte
 `zen/policies.json` is the tamper-resistant alternative (enterprise policies, read at every
 start, root-owned at `/opt/zen-browser-bin/distribution/policies.json`).
 
-**Vesktop theme.** `vesktop/themes/mango.theme.css` maps the shell tokens onto Discord's CSS
-variables. Blocker found while verifying: Vesktop does not theme Discord by itself, it needs
-Vencord — and in this install **Vencord is present but inert**: `sessionData/vencordFiles/`
-holds the injected assets, yet Vencord never created its data directory (no `VencordData`/
-`Vencord` anywhere, no `vencord` key in the session Local Storage), no theme or QuickCSS
-channel had any effect (verified with a magenta marker in both channels), and the `themes/` +
-`settings/` files shipped in this repo were therefore dead weight.
-`mango/scripts/vesktop-theme.sh` detects Vencord's data directory, installs the theme and
-enables it in `enabledThemes`; until Vencord runs it reports the blocker instead of failing
-silently.
+**Vesktop theme.** `vesktop/themes/mango.theme.css` maps the shell tokens onto Discord's
+current variable surface. Findings from the debugging session (all verified by restarting
+Vesktop and sampling the rendered pixels):
+
+- Vencord **is** active in this install (`sessionData/vencordFiles/`, plugins start in the
+  renderer log) and its data directory is `~/.config/vesktop` — which this repo symlinks — so
+  `vesktop/settings/settings.json` (`enabledThemes`) and `vesktop/themes/*.theme.css` are the
+  live paths.
+- Vencord loads a local theme with `@import url("vencord:///themes/<file>?v=<ts>")`; the file
+  must end in `.css` and the `enabledThemes` entry must be the **file name**. The header block
+  between the first `/**` and `*/` supplies `@name`/`@version`; prose inside that block
+  pollutes `@version`, so it must stay outside.
+- Discord's current build **does not read** `--background-primary` / `--brand-experiment` for
+  its surfaces any more. It exposes its own variable surface and applies it only inside
+  `@container root style(--colors: on)`, which requires `@property --colors` **and**
+  `container-name: root` on `:root` (plus `container-name: body` on `body`). Without the
+  container names the query never matches and the theme renders exactly like the default one.
+- The palette slots Discord maps from are `--bg-1..4`, `--text-0..5`, `--accent-1..5`,
+  `--hover`, `--active`, `--active-2`, `--message-hover`, `--border`, `--border-light`,
+  `--border-hover`, `--button-border`, `--green/red/blue/yellow/purple-1..5` and
+  `--accent-new`. The mapping block is adapted from midnight-discord (MIT).
+- Result verified: the window renders `#171a17` surfaces and the green accent button.
+
 

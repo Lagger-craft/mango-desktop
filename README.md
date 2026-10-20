@@ -238,9 +238,7 @@ The policies are read on the next start of the browser.
 ## Vesktop theme
 
 `vesktop/themes/mango.theme.css` is the shell palette applied to Discord:
-charcoal surfaces, the green accent, soft corners and the shell's borders. It
-is self-contained — unlike the store themes (`midnight`, `system24`) it
-imports nothing from the network, so no third-party stylesheet is fetched.
+charcoal surfaces, the green accent, soft corners and the shell's borders.
 
 Vesktop has no theming of its own: Discord is restyled through Vencord, whose
 theme files live in `<data>/themes` and are listed in
@@ -251,8 +249,23 @@ enables it:
 mango/scripts/vesktop-theme.sh
 ```
 
-If Vencord has never run (its data directory does not exist), the script says
-so: open Vesktop → Settings → Vencord → Install, then run it again.
+Two details matter on the current Discord build, and they are why a theme that
+only sets `--background-primary` looks like the default one:
+
+- Discord exposes its own variable surface (`--app-frame-background`,
+  `--background-base-*`, `--background-surface-*`, `--background-mod-*`,
+  `--badge-*`, `--interactive-*`, …) and applies it **only** inside
+  `@container root style(--colors: on)`. That container query needs both
+  `@property --colors` and `container-name: root` on `:root`, otherwise it never
+  matches.
+- The theme must therefore define the palette slots Discord maps from
+  (`--bg-1..4`, `--text-0..5`, `--accent-1..5`, `--hover`, `--active`,
+  `--border`, …). The mapping block in `mango.theme.css` is adapted from
+  midnight-discord (MIT).
+
+Unlike the store themes (`midnight`, `system24`) this file fetches no
+stylesheet and no font from the network.
+
 
 ## Screenshots
 
