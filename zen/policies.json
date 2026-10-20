@@ -16,16 +16,13 @@
     "EnableTrackingProtection": {
       "Value": true,
       "Cryptomining": true,
-      "Fingerprinting": true,
       "Locked": false
     },
     "UserChrome": {
       "Enabled": true,
       "Locked": false
     },
-    "DisablePasswordManager": false,
     "OfferToSaveLogins": true,
-    "PasswordManagerEnabled": true,
-    "DisableFormHistory": false
+    "PasswordManagerEnabled": true
   }
 }
