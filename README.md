@@ -85,6 +85,7 @@ popup.
 | Super+Tab | Mango overview (drag apps to tags/monitors) |
 | Super+Space | Wofi application launcher |
 | Super+Alt+W | Open the wallpaper picker (local + Steam Workshop) |
+| Super+Alt+A | Open the audio panel (outputs, inputs, per-app volume) |
 | Super+V | Choose an item from local clipboard history (press again to close) |
 | Super+/ | Open the static keyboard shortcut reference |
 | Super+H/J/K/L | Focus left/down/up/right |
@@ -115,8 +116,9 @@ island, or `Super`-bindable `quickshell ipc call calendar toggle`), a ZONE
 label that opens the dashboard, a system tray (left-click activates,
 middle-click secondary activates, right-click opens the item's menu), a
 notification icon that opens a review panel (history, re-show one or the
-latest, clear history, close displayed), and an icon-only power control. The
-dashboard is a dimmed full-screen overlay (the ZONE label or
+latest, clear history, close displayed), a speaker icon that opens the audio
+panel, and an icon-only power control. The dashboard is a dimmed full-screen
+overlay (the ZONE label or
 `quickshell ipc call dashboard toggle`) with notification history,
 live CPU/RAM/uptime/kernel figures, the active MPRIS player, and session
 actions (logout, reboot, poweroff). The `Super+Alt+W` wallpaper picker is a QuickShell overlay, not a Wofi menu (see
@@ -168,6 +170,36 @@ previous theme.
 The project's scripts and configuration perform no network requests and fetch
 no remote assets. This guarantee applies only to this project's code; browsers
 and other desktop applications may independently use the network.
+
+## Audio panel
+
+The speaker icon in the right island of the bar (or `Super+Alt+A`, or
+`quickshell ipc call audio toggle`) opens a panel with three sections:
+
+- **Output**: every playback device, its volume slider and mute button. The
+  filled dot marks the default output; clicking the dot (or the device name)
+  makes it the default.
+- **Input**: the same for capture devices. Monitor sources are hidden: they
+  are the recording end of an output, not a microphone.
+- **Applications**: every app currently playing, with its own volume slider,
+  mute button and a chip showing which output it plays through. Clicking the
+  chip moves the app to the next output.
+
+The bar at the top of the panel is a live output level meter for the default
+sink. The speaker icon in the bar turns amber while the default output is
+muted, so a mute done with the keyboard is visible without opening the panel.
+
+State comes from PulseAudio's JSON interface (`pactl -f json`), not from
+QuickShell's native Pipewire service: with PipeWire 1.6 and WirePlumber 0.5
+the device volume no longer lives in the legacy `node.volume` property, so
+QuickShell's `PwNodeAudioIface` reads zero and its writes are silent no-ops.
+The native service is used for what it does work: the live level meter, taken
+from the native peak monitor of the default sink. Every change made in the
+panel is a normal PulseAudio call, so applications see it immediately.
+
+One limitation: an app that talks to PipeWire natively (instead of through
+the PulseAudio compatibility layer) picks its own output and cannot be moved
+from the panel; its chip is shown dimmed and does nothing when clicked.
 
 ## Wallpapers
 

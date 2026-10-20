@@ -245,6 +245,71 @@ ShellRoot {
     }
   }
 
+  // Audio panel state (S1): toggled by the speaker icon in the right island
+  // or the `quickshell ipc call audio toggle` bind. The panel opens on the
+  // screen it was opened from; an IPC open uses the focused monitor.
+  Scope {
+    id: audioPanelState
+    property bool active: false
+    property string targetMonitor: ""
+
+    // An IPC open has no click: it delegates the choice to the monitor query.
+    readonly property string requestedMonitor:
+      targetMonitor !== "" ? targetMonitor : audioTargetMonitor.monitor
+
+    IpcHandler {
+      target: "audio"
+      function toggle(): void {
+        if (audioPanelState.active) {
+          audioPanelState.active = false;
+          return;
+        }
+        audioPanelState.targetMonitor = "";
+        audioTargetMonitor.requery();
+        audioPanelState.active = true;
+      }
+    }
+
+    function toggleAt(monitor) {
+      if (active && targetMonitor === monitor) {
+        active = false;
+        return;
+      }
+      targetMonitor = monitor;
+      active = true;
+    }
+  }
+
+  // The one screen the audio panel appears on when it is opened without a
+  // click: the currently focused monitor, re-queried on every IPC open.
+  Scope {
+    id: audioTargetMonitor
+    property string monitor: ""
+
+    function requery() { audioMonitorQuery.running = true; }
+
+    Process {
+      id: audioMonitorQuery
+      command: ["mmsg", "get", "all-monitors"]
+      stdout: SplitParser {
+        onRead: line => {
+          if (!line.trim().length)
+            return;
+          try {
+            const mons = JSON.parse(line).monitors || [];
+            for (const m of mons)
+              if (m.active) {
+                audioTargetMonitor.monitor = m.name;
+                break;
+              }
+          } catch (e) {
+            // Keep the previous monitor on a malformed line.
+          }
+        }
+      }
+    }
+  }
+
   Variants {
     model: Quickshell.screens
 
@@ -402,6 +467,11 @@ ShellRoot {
 
             Notifications {
               panelWindow: panel
+            }
+
+            AudioButton {
+              panelWindow: panel
+              panelState: audioPanelState
             }
 
             PowerButton {}
