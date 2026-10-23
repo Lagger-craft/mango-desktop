@@ -15,7 +15,9 @@ Item {
 
   Text {
     anchors.centerIn: parent
-    text: AudioState.defaultSinkMuted ? "󰖀" : "󰕾"
+    // Nerd Font glyphs: F0580 (󰖀) renders as the volume waves, F057E (󰕾)
+    // as the slashed (muted) speaker — this mapping was inverted before.
+    text: AudioState.defaultSinkMuted ? "󰕾" : "󰖀"
     font.family: "JetBrainsMono Nerd Font Mono"
     font.pixelSize: 16
     color: hover.hovered || button.panelState.active
