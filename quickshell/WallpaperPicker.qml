@@ -260,6 +260,10 @@ Item {
                 anchors.fill: parent
                 anchors.bottomMargin: 20
                 source: picker.previewOf(cell.modelData)
+                // Decode at 2× the 176px cell instead of the wallpaper's
+                // full resolution: a 4K preview costs ~0.4 MB instead of
+                // 11-42 MB of decoded pixels that stay resident forever.
+                sourceSize.width: 352
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
