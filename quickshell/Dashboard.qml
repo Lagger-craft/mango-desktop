@@ -724,6 +724,10 @@ Item {
                 anchors.margins: 2
                 visible: dashboard.artSource !== ""
                 source: dashboard.artSource
+                // Decode at 2x the 88px box instead of the source's full
+                // resolution: album art can be several MB decoded for a
+                // thumbnail nobody sees bigger than 88px.
+                sourceSize.width: 176
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
               }
