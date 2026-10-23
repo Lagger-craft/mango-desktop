@@ -48,7 +48,8 @@ QtObject {
   // Live output level of the default sink, 0..1.
   property real outputPeak: Number(meter ? meter.peak : 0) || 0
 
-  // How many audio panels are open. The poll speeds up while one is visible.
+  // How many audio panels are open. A refresh triggered while one is
+  // visible reads everything, not just the background devices.
   property int openCount: 0
 
   // True once the first successful read landed.
@@ -56,6 +57,10 @@ QtObject {
 
   function setPanelOpen(open) {
     openCount = Math.max(0, openCount + (open ? 1 : -1));
+    // Open with fresh data even if the subscriber is between reconnects:
+    // the panel must never show the last cached device state as live.
+    if (open)
+      audio.refresh();
   }
 
   // ---- reading ----
@@ -377,12 +382,62 @@ QtObject {
 
   // ---- native meter ----
 
-  // ---- polling ----
+  // ---- event-driven refresh ----
+  //
+  // `pactl subscribe` streams one line per Pulse/PipeWire change event, so
+  // an idle desktop spawns nothing. The old background poll ran a full
+  // `pactl -f json list sinks` parse every 2s forever just to keep the bar
+  // icon honest; that churned ~50k allocator calls/s and kept the process
+  // RSS high-water mark pinned even after the traffic stopped.
 
-  // The background poll keeps the panel icon honest (the volume keys and
-  // the mute key act outside the panel); it speeds up while a panel is open.
-  property Timer pollTimer: Timer {
-    interval: audio.openCount > 0 ? 700 : 2000
+  // Long-lived subscriber. It exits when the pulse socket goes away
+  // (PipeWire restart), so onExited reconnects with a short backoff.
+  // Started from Component.onCompleted: a `running: true` binding in the
+  // declaration does not actually spawn the process in Quickshell.
+  property Process subscribeProcess: Process {
+    command: ["pactl", "subscribe"]
+    stdout: SplitParser {
+      onRead: line => {
+        // Refresh only for the object classes this state reads: sinks
+        // (bar icon + panel), sources (panel) and the server (default
+        // sink/source switches). Volume keys, mute keys and app streams
+        // all land on one of these.
+        if (line.includes("sink") || line.includes("source") || line.includes("server"))
+          audio.scheduleRefresh();
+      }
+    }
+    onExited: subscribeRestartTimer.restart()
+  }
+
+  property Timer subscribeRestartTimer: Timer {
+    interval: 2000
+    onTriggered: subscribeProcess.running = true
+  }
+
+  // Coalesce event bursts: the first event schedules one refresh at most
+  // 250 ms out, and events arriving meanwhile do not push it further, so a
+  // held volume key still updates the icon within a quarter second.
+  function scheduleRefresh() {
+    if (!refreshDebounce.running)
+      refreshDebounce.start();
+  }
+
+  property Timer refreshDebounce: Timer {
+    interval: 250
+    onTriggered: {
+      if (audio.openCount > 0)
+        audio.refresh();
+      else
+        audio.refreshDevices();
+    }
+  }
+
+  // Belt and suspenders: if an event was missed (subscriber still
+  // connecting at startup, or the socket dropped without an exit), one
+  // cheap read a minute re-syncs the state. Two pactl spawns per minute
+  // instead of one every two seconds.
+  property Timer safetyPoll: Timer {
+    interval: 60000
     running: true
     repeat: true
     onTriggered: {
@@ -393,5 +448,8 @@ QtObject {
     }
   }
 
-  Component.onCompleted: audio.refresh()
+  Component.onCompleted: {
+    audio.subscribeProcess.running = true;
+    audio.refresh();
+  }
 }
