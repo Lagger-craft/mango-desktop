@@ -128,6 +128,8 @@ if [[ "$MODE" == uninstall ]]; then
   remove_link "$HOME/.zshrc"
   remove_link "$HOME/.config/systemd/user/screenshot-cleanup.service"
   remove_link "$HOME/.config/systemd/user/screenshot-cleanup.timer"
+  remove_link "$HOME/.config/systemd/user/clipboard-expire.service"
+  remove_link "$HOME/.config/systemd/user/clipboard-expire.timer"
   echo "For the rest (wallpaper process, wallpaper state, XDG browser), see README > Rollback."
   exit 0
 fi
@@ -174,6 +176,8 @@ link_config "$REPO_DIR/fastfetch" "$HOME/.config/fastfetch"
 link_config "$REPO_DIR/mango/mangohud/MangoHud.conf" "$HOME/.config/MangoHud/MangoHud.conf"
 link_config "$REPO_DIR/systemd/screenshot-cleanup.service" "$HOME/.config/systemd/user/screenshot-cleanup.service"
 link_config "$REPO_DIR/systemd/screenshot-cleanup.timer" "$HOME/.config/systemd/user/screenshot-cleanup.timer"
+link_config "$REPO_DIR/systemd/clipboard-expire.service" "$HOME/.config/systemd/user/clipboard-expire.service"
+link_config "$REPO_DIR/systemd/clipboard-expire.timer" "$HOME/.config/systemd/user/clipboard-expire.timer"
 
 echo "Preparing user state:"
 run mkdir -p "$HOME/Pictures/Wallpapers"
@@ -234,10 +238,11 @@ if [[ -x "$REPO_DIR/mango/scripts/vesktop-theme.sh" ]]; then
   fi
 fi
 
-# Daily screenshot prune (files older than 3 days).
+# Daily screenshot prune (files older than 3 days) and hourly clipboard expiry.
 if command -v systemctl >/dev/null 2>&1; then
   run systemctl --user daemon-reload
   run systemctl --user enable --now screenshot-cleanup.timer
+  run systemctl --user enable --now clipboard-expire.timer
 fi
 
 if ((SKIPPED)); then

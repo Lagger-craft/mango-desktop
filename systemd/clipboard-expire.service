@@ -1,0 +1,6 @@
+[Unit]
+Description=Prune clipboard history entries older than 72 hours
+
+[Service]
+Type=oneshot
+ExecStart=%h/mango-desktop/mango/scripts/clipboard-expire.sh

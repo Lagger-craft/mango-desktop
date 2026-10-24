@@ -2,6 +2,7 @@
 set -euo pipefail
 
 style="$HOME/mango-desktop/mango/wofi.css"
+expire="$HOME/mango-desktop/mango/scripts/clipboard-expire.sh"
 
 if [[ ${1:-} == --watch ]]; then
   # cliphist 0.7.0 supports max-items but not max-store-size; cap input bytes
@@ -18,7 +19,14 @@ if [[ ${1:-} == --watch ]]; then
   if (( item_size > 1048576 )); then
     exit 0
   fi
+  if (( item_size == 0 )); then
+    # An emptied clipboard stores nothing; only its selection clock moves.
+    "$expire" --touch || true
+    exit 0
+  fi
   cliphist -max-items 100 store < "$temporary_item"
+  # Bookkeeping only: a failed stamp must never break clipboard collection.
+  "$expire" --stamp || true
   exit 0
 fi
 
@@ -30,6 +38,10 @@ if pgrep -f -- "$picker_pattern" > /dev/null; then
   pkill -f -- "$picker_pattern"
   exit 0
 fi
+
+# Expire stale history first so the picker never offers it. Best-effort: a
+# failed prune must not block the menu.
+"$expire" || true
 
 if ! selection=$(cliphist list | wofi --dmenu --style "$style" --prompt 'Clipboard history'); then
   exit 0

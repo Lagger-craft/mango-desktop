@@ -137,7 +137,21 @@ window blur.
 Clipboard history is collected by one Mango-session watcher and stored locally
 in cliphist's XDG cache. It retains at most 100 entries and skips individual
 items larger than 1 MiB (the watcher enforces this per-item cap because the
-installed cliphist 0.7.0 has no `max-store-size` option). The history may contain
+installed cliphist 0.7.0 has no `max-store-size` option). Entries expire 72
+hours after they were copied: re-copying an item, or picking it again from the
+`Super+V` menu, restarts that item's clock, while an item that stays unused is
+deleted from the history and, when it is the current selection, also cleared
+from the clipboard. A plain `Ctrl+V` paste cannot be observed on Wayland, so it
+does not restart the clock. An hourly systemd user timer runs the same pass, so
+an idle session is still cleaned up:
+
+```sh
+systemctl --user list-timers clipboard-expire.timer
+```
+
+The expiry bookkeeping stores only cliphist entry ids and timestamps, never
+clipboard content; entries that already existed when the feature was installed
+start their clock the first time they are observed. The history may contain
 sensitive copied data; clear it with `cliphist wipe`. Canceling the `Super+V`
 picker leaves the current clipboard unchanged, and pressing `Super+V` while the
 picker is open closes it instead of opening a second one. `Super+/` displays a
@@ -401,8 +415,8 @@ The per-monitor state map and renderer PIDs are stored under
 only if you also want to forget the chosen wallpapers. `./install.sh --uninstall` deliberately leaves `~/Pictures/Wallpapers`
 alone, so a seeded `default.png` stays behind until you delete it yourself.
 This profile links `~/.config/mango`,
-`~/.config/vesktop`, `~/.zshrc` and the two `screenshot-cleanup` systemd user
-units, and sets Firefox as the XDG default;`./install.sh --uninstall` reverses exactly those links, while the Niri config
+`~/.config/vesktop`, `~/.zshrc` and the `screenshot-cleanup` and
+`clipboard-expire` systemd user units, and sets Firefox as the XDG default;`./install.sh --uninstall` reverses exactly those links, while the Niri config
 and `~/.config/quickshell` are never touched. Mango's explicit output rules
 apply only while this profile is running.
 
@@ -410,8 +424,9 @@ apply only while this profile is running.
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
-bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-config.sh ./mango/scripts/screenshot-cleanup.sh ./mango/scripts/vesktop-theme.sh
+bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-config.sh ./mango/scripts/screenshot-cleanup.sh ./mango/scripts/vesktop-theme.sh ./mango/scripts/clipboard-expire.sh ./mango/scripts/clipboard-menu.sh
 bash ./tests/verify-hardening.sh
+bash ./tests/verify-clipboard-expiry.sh
 ./install.sh --dry-run
 unshare -rn nft -c -f ./nftables/nftables.conf
 git diff --check
