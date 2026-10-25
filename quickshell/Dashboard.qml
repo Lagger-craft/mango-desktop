@@ -30,43 +30,11 @@ Item {
 
   Keys.onEscapePressed: dashboardState.close()
 
-  // ---- system stats (procfs; ~2 s refresh while open) --------------------
-  property real cpuPct: 0
-  property double lastBusy: -1
-  property double lastTotal: -1
-  property real memUsedGiB: 0
-  property real memTotalGiB: 0
+  // ---- system stats -----------------------------------------------------
+  // CPU/RAM live on the shared SysStats singleton (one parser for the panel
+  // bubbles and this card); only uptime/kernel are read here (procfs).
   property string uptimeText: "…"
   property string kernelText: "…"
-
-  // First /proc/stat line: cpu user nice system idle iowait irq softirq
-  // steal guest guest_nice. guest is already counted inside user, so the
-  // total stops at steal. CPU% comes from busy/total deltas between reads.
-  function parseCpu(text) {
-    const parts = (text || "").trim().split(/\s+/);
-    if (parts.length < 6 || parts[0] !== "cpu")
-      return;
-    let total = 0;
-    for (let i = 1; i <= 8 && i < parts.length; i++)
-      total += Number(parts[i]) || 0;
-    const idleAll = (Number(parts[4]) || 0) + (Number(parts[5]) || 0); // idle + iowait
-    const busy = total - idleAll;
-    if (dashboard.lastTotal >= 0 && total > dashboard.lastTotal) {
-      const pct = 100 * (busy - dashboard.lastBusy) / (total - dashboard.lastTotal);
-      dashboard.cpuPct = Math.max(0, Math.min(100, pct));
-    }
-    dashboard.lastBusy = busy;
-    dashboard.lastTotal = total;
-  }
-
-  function parseMem(text) {
-    const total = /MemTotal:\s+(\d+)/.exec(text || "");
-    const avail = /MemAvailable:\s+(\d+)/.exec(text || "");
-    if (!total || !avail)
-      return;
-    dashboard.memTotalGiB = Number(total[1]) / 1048576;
-    dashboard.memUsedGiB = (Number(total[1]) - Number(avail[1])) / 1048576;
-  }
 
   function parseUptime(text) {
     const s = parseFloat((text || "").trim().split(/\s+/)[0]);
@@ -80,18 +48,6 @@ Item {
                                  : m + "m";
   }
 
-  FileView {
-    id: statFile
-    path: "/proc/stat"
-    printErrors: false
-    onTextChanged: dashboard.parseCpu(this.text())
-  }
-  FileView {
-    id: memFile
-    path: "/proc/meminfo"
-    printErrors: false
-    onTextChanged: dashboard.parseMem(this.text())
-  }
   FileView {
     id: uptimeFile
     path: "/proc/uptime"
@@ -112,11 +68,10 @@ Item {
     property int ticks: 0
     onTriggered: {
       ticks++;
-      statFile.reload(); // fresh busy/total delta for the CPU %
-      memFile.reload();
       if (ticks % 4 === 0) // uptime changes too slowly to churn every tick
         uptimeFile.reload();
-      // Notification state is live on the singleton; no dunst polling here.
+      // CPU/RAM are polled by the shared SysStats singleton; notification
+      // state is live on the NotificationDaemon singleton. No polling here.
     }
   }
 
@@ -125,13 +80,8 @@ Item {
     function onActiveChanged() {
       if (!dashboard.dashboardState.active)
         return;
-      // The FileViews auto-loaded once at shell creation, so lastBusy/
-      // lastTotal are hours stale: drop the old sample and re-read now so
-      // the first visible CPU% is a real 500 ms delta, not a day-average.
-      dashboard.lastBusy = -1;
-      dashboard.lastTotal = -1;
-      statFile.reload();
-      memFile.reload();
+      // CPU/RAM come pre-warmed from SysStats' continuous polling; only the
+      // slow-changing fields need a refresh at open.
       uptimeFile.reload();
       sysTimer.restart();
       dashboardEnter.restart();
@@ -593,7 +543,7 @@ Item {
         }
       }
 
-      // -- System: CPU/RAM/uptime/kernel straight from procfs.
+      // -- System: CPU/RAM from SysStats, uptime/kernel straight from procfs.
       Card {
         title: "SYSTEM"
         meta: dashboard.uptimeText + " up"
@@ -616,14 +566,14 @@ Item {
           Text {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: Math.round(dashboard.cpuPct) + "%"
+            text: Math.round(SysStats.cpuPct) + "%"
             color: dashboard.textPrimary
             font.family: dashboard.mono
             font.bold: true
             font.pixelSize: 11
           }
         }
-        Bar { value: dashboard.cpuPct / 100 }
+        Bar { value: SysStats.cpuPct / 100 }
 
         Item {
           width: parent.width
@@ -639,15 +589,15 @@ Item {
           Text {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: dashboard.memUsedGiB.toFixed(1) + " / "
-                + dashboard.memTotalGiB.toFixed(1) + " GiB"
+            text: SysStats.memUsedGiB.toFixed(1) + " / "
+                + SysStats.memTotalGiB.toFixed(1) + " GiB"
             color: dashboard.textPrimary
             font.family: dashboard.mono
             font.bold: true
             font.pixelSize: 11
           }
         }
-        Bar { value: dashboard.memTotalGiB > 0 ? dashboard.memUsedGiB / dashboard.memTotalGiB : 0 }
+        Bar { value: SysStats.memTotalGiB > 0 ? SysStats.memUsedGiB / SysStats.memTotalGiB : 0 }
 
         Item {
           width: parent.width

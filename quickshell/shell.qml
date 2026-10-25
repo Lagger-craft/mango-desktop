@@ -461,6 +461,16 @@ ShellRoot {
             anchors.centerIn: parent
             spacing: 6
 
+            // CPU / RAM / GPU bubbles (S1/S2), split from the controls by a
+            // hairline divider.
+            StatBubbles {}
+
+            Rectangle {
+              width: 1
+              height: 16
+              color: Theme.divider
+            }
+
             Tray {
               panelWindow: panel
             }
