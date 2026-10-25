@@ -131,3 +131,29 @@ cached chain strategy from odd/tasks/clipboard-expiry.md L7 applies and must
 not be mixed — chain `stacked-to-main`, delivery `ask-on-risk`; the PR-time
 `size:exception` decision for the stacked base is already pending there. Push
 and PR creation remain unauthorized until the user asks.
+
+L7 (2026-07-25) — closing verification. Independent verifier: UNAVAILABLE —
+the `gentle-ai-verify` launch was refused at admission (the gate requires a
+`Risk: item N` declaration inside the task and explicitly forbids retrying or
+adding one only to get admitted), so per protocol it is reported as
+unavailable and the focused suite was run inline instead. Native `gentle_review`
+ASSESS: risk `high`, agent escalation `item 6` ("no test would catch a
+regression" — QML panel behavior has no automated test runner) accepted;
+native assess itself failed with `untracked files require an explicit
+declaration` (the pre-existing untracked AGENTS.md in the worktree) and
+returned outcome `unknown`/no candidate — relayed as-is; RDD is off, so no
+native review gates delivery. Inline closing suite (all green): `mango -c … -p`
+exit 0, `bash -n` exit 0, verify-hardening `all probes pass`,
+verify-clipboard-expiry `all probes pass`, `install.sh --dry-run` exit 0,
+`unshare -rn nft -c -f` exit 0, `git diff --check` exit 0, qmllint sweep over
+quickshell/*.qml clean except shell.qml's recorded silent-255 baseline false
+positive. Live evidence stands as recorded in L4/L5 (bar bubbles centered,
+dashboard SYSTEM card bound to the same values, notifications silent with
+history-only dashboard view).
+
+Risk: item 6 (no automated test would catch a regression in QML panel
+behavior — covered only by qmllint and live manual probes). Item 3 checked:
+the removed bell/toasts are referenced by no keybind, IPC target or external
+consumer (grep over mango/, install.sh, systemd/), and the NotificationServer
+capability shrink (actions/images) follows directly from S4 — apps may no
+longer send actions/images that no view could present.
