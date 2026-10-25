@@ -458,12 +458,14 @@ ShellRoot {
             spacing: 6
 
             // CPU / RAM / GPU bubbles (S1/S2), split from the controls by a
-            // hairline divider.
+            // hairline divider. Both sit centered in the 30 px action band
+            // like every sibling (the Row top-aligns its children).
             StatBubbles {}
 
             Rectangle {
               width: 1
               height: 16
+              anchors.verticalCenter: parent.verticalCenter
               color: Theme.divider
             }
 
