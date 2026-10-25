@@ -43,6 +43,8 @@ cd "$HOME/mango-desktop"
 ./install.sh            # install and link
 ./install.sh --dry-run  # preview every action, change nothing
 ./install.sh --uninstall # remove only the symlinks the installer created
+./uninstall.sh          # full rollback: links, timers, state, panel and packages
+./uninstall.sh --dry-run # preview the rollback, change nothing
 ```
 
 Dependency policy: official-repo packages are installed with `pacman`
@@ -56,8 +58,9 @@ non-destructive: it never overwrites an existing config path (an occupied
 `~/.config/fastfetch`, or
 `~/.zshrc` is reported as `SKIP` and left alone), it only sets the XDG default
 browser when none is configured, and it never touches Niri or
-`~/.config/quickshell`. Packages are left installed on `--uninstall`; see
-`## Rollback` for the rest.
+`~/.config/quickshell`. Packages are left installed on `--uninstall`;
+`./uninstall.sh` is the full rollback that also removes them — see
+`## Rollback`.
 
 The repository ships the live configuration for this profile: `mango/`
 (compositor config and scripts), `quickshell/shell.qml` (the panel, started
@@ -407,7 +410,22 @@ sudo nft list ruleset
 
 ## Rollback
 
-Log out with Super+Shift+E, or exit the compositor normally. Stop only the
+`./uninstall.sh` reverses everything the installer did, in one pass: it
+stops the panel and the wallpaper renderers, disables the
+`screenshot-cleanup` and `clipboard-expire` timers, removes the installer's
+symlinks (by delegating to `./install.sh --uninstall`), deletes
+`${XDG_STATE_HOME:-~/.local/state}/mango`, removes the seeded
+`~/Pictures/Wallpapers/default.png` only while it is byte-identical to the
+shipped copy, and finally removes every package the installer installs with
+`sudo pacman -Rns` (pacman keeps its own confirmation prompt). Preview it
+with `./uninstall.sh --dry-run`. It is idempotent and never touches Niri,
+`~/.config/quickshell`, wallpapers of your own, config paths the installer
+did not create, or this repository. Deliberate leftovers it only reports:
+Zen's privacy prefs and the Vencord theme (applied without backup), and
+`/etc/nftables.conf` if you enabled it.
+
+For a partial, manual rollback instead: log out with Super+Shift+E, or exit
+the compositor normally. Stop only the
 wallpaper renderers managed by this profile with:
 
 ```sh
@@ -428,9 +446,10 @@ apply only while this profile is running.
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p
-bash -n ./install.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-config.sh ./mango/scripts/screenshot-cleanup.sh ./mango/scripts/vesktop-theme.sh ./mango/scripts/clipboard-expire.sh ./mango/scripts/clipboard-menu.sh
+bash -n ./install.sh ./uninstall.sh ./mango/scripts/power-menu.sh ./mango/scripts/wallpaper-ctl.sh ./mango/scripts/volume-osd.sh ./mango/scripts/zen-config.sh ./mango/scripts/screenshot-cleanup.sh ./mango/scripts/vesktop-theme.sh ./mango/scripts/clipboard-expire.sh ./mango/scripts/clipboard-menu.sh
 bash ./tests/verify-hardening.sh
 bash ./tests/verify-clipboard-expiry.sh
+bash ./tests/verify-uninstall.sh
 ./install.sh --dry-run
 unshare -rn nft -c -f ./nftables/nftables.conf
 git diff --check

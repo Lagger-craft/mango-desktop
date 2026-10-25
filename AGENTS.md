@@ -28,9 +28,10 @@ Run from the repo root; all are fast (~1 s total) and independent:
 
 ```sh
 mango -c "$HOME/mango-desktop/mango/config.conf" -p   # compositor config parses
-bash -n ./install.sh ./mango/scripts/*.sh             # shell syntax (no shellcheck here)
+bash -n ./install.sh ./uninstall.sh ./mango/scripts/*.sh # shell syntax (no shellcheck here)
 bash ./tests/verify-hardening.sh                      # zen prefs, nftables, screenshot prune
 bash ./tests/verify-clipboard-expiry.sh               # clipboard expiry end-to-end
+bash ./tests/verify-uninstall.sh                      # full-rollback safety (Niri untouched) end-to-end
 ./install.sh --dry-run                                # installer preview
 unshare -rn nft -c -f ./nftables/nftables.conf        # firewall parses in a throwaway netns
 git diff --check
