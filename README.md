@@ -23,7 +23,8 @@ or the selected file was removed since) it falls back to the shipped default
 background instead of starting blank. Quickshell makes a reserved top panel for
 every connected screen. The panel renders as three floating islands with
 compositor layer blur: a left zone/tag island, a centered clock island, and a
-right island with the system tray, the notification center, and the power icon.
+right island with the CPU/RAM/GPU stat bubbles, the system tray, and the power
+icon.
 Their charcoal surface is translucent, so the live backdrop behind the bar
 frosts into the island bodies (glass effect); windows stay opaque, so window
 blur never shows. Firefox is launched
@@ -114,13 +115,14 @@ the current tag through `circle_layout` in `mango/config.conf`
 The panel includes a clock (clicking it toggles a calendar popup under the
 island, or `Super`-bindable `quickshell ipc call calendar toggle`), a ZONE
 label that opens the dashboard, a system tray (left-click activates,
-middle-click secondary activates, right-click opens the item's menu), a
-notification icon that opens a review panel (history, re-show one or the
-latest, clear history, close displayed), a speaker icon that opens the audio
+middle-click secondary activates, right-click opens the item's menu), three
+stat bubbles (CPU %, RAM used/total in GiB, GPU % — refreshed every 2 s from
+procfs and the amdgpu sysfs nodes), a speaker icon that opens the audio
 panel, and an icon-only power control. The dashboard is a dimmed full-screen
 overlay (the ZONE label or
-`quickshell ipc call dashboard toggle`) with notification history,
-live CPU/RAM/uptime/kernel figures, the active MPRIS player, and session
+`quickshell ipc call dashboard toggle`) with the notification history — the
+only place notifications are shown —, live CPU/RAM/uptime/kernel figures, the
+active MPRIS player, and session
 actions (logout, reboot, poweroff). The `Super+Alt+W` wallpaper picker is a QuickShell overlay, not a Wofi menu (see
 `## Wallpapers`); there is no redundant panel button. The Wofi
 drun launcher displays desktop-entry icons. Controls have lightweight hover
@@ -163,10 +165,12 @@ replaces the current clipboard with that screenshot; canceling the selector
 leaves the clipboard unchanged.
 
 Notifications are handled entirely inside QuickShell: its `NotificationServer`
-is the sole notification daemon, so there is no extra process. Incoming
-notifications render as themed toasts under the bar on the focused monitor;
-critical ones persist until dismissed. The bell icon reads the same shell
-singleton (bounded history, badge with live count). If dunst is installed it
+is the sole notification daemon, so there is no extra process. Nothing pops up
+in the bar — there are no toasts and no bell. Every notification is recorded
+in a bounded history (newest 50) and read in the dashboard's notifications
+card, the only notification view; entries are plain history rows (no
+re-show). Actions and images are not advertised to apps because no view can
+present them. If dunst is installed it
 should be removed: it D-Bus-activates on the first `notify-send` and races the
 shell for `org.freedesktop.Notifications`. A user-level override at
 `~/.local/share/dbus-1/services/org.freedesktop.Notifications.service` with
