@@ -411,12 +411,11 @@ Item {
       anchors.rightMargin: 16
       anchors.bottomMargin: 16
 
-      // -- Notifications: daemon history + live counts (NotificationDaemon
-      // only, same singleton the bell reads).
+      // -- Notifications: bounded history on the NotificationDaemon
+      // singleton — the only notification view left (S3).
       Card {
         title: "NOTIFICATIONS"
         meta: NotificationDaemon.historyCount + " history"
-            + (NotificationDaemon.pending > 0 ? "  ·  " + NotificationDaemon.pending + " active" : "")
         x: 0
         y: 0
         width: (parent.width - 12) / 2
@@ -428,13 +427,6 @@ Item {
           ActionButton {
             label: "CLEAR HISTORY"
             action: () => NotificationDaemon.clearHistory()
-          }
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "click an entry to re-show it"
-            color: dashboard.textDim
-            font.family: dashboard.mono
-            font.pixelSize: 9
           }
         }
 
@@ -477,8 +469,7 @@ Item {
                 width: notifColumn.width
                 height: entryCol.implicitHeight + 8
                 radius: 6
-                color: entryMouse.containsMouse ? Theme.hover : "transparent"
-                Behavior on color { ColorAnimation { duration: 120 } }
+                color: "transparent"
 
                 Column {
                   id: entryCol
@@ -525,18 +516,6 @@ Item {
                     maximumLineCount: 2
                   }
                 }
-
-                MouseArea {
-                  id: entryMouse
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: NotificationDaemon.reshowEntry(entry.modelData.id)
-                }
-
-                ToolTip.visible: entryMouse.containsMouse
-                ToolTip.text: "Re-show this notification"
-                ToolTip.delay: 500
               }
             }
           }

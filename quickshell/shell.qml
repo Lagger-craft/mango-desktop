@@ -334,12 +334,6 @@ ShellRoot {
           osdState: osd
         }
 
-        // Notification toasts: popup under the bar's right edge, only on the
-        // screen the daemon's focused-monitor query reported (T1).
-        Toasts {
-          panelWindow: panel
-        }
-
         // The bar renders as three floating islands instead of one solid
         // strip: translucent charcoal + green hairline border, so Mango's
         // layer blur (blur_layer=1) frosts only the island bodies while the
@@ -430,7 +424,9 @@ ShellRoot {
           }
         }
 
-        // Right island: system tray, notification center, power icon.
+        // Right island: stat bubbles, system tray, audio and power icons.
+        // Notifications are silent: no toasts, no bell — the dashboard card
+        // is the only view (S3).
         Rectangle {
           id: rightIsland
           anchors {
@@ -472,10 +468,6 @@ ShellRoot {
             }
 
             Tray {
-              panelWindow: panel
-            }
-
-            Notifications {
               panelWindow: panel
             }
 
